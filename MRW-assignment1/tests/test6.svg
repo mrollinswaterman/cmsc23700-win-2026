@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg" xmlns:bx="https://boxy-svg.com">
+    <path d="M 128.965 104.161 L 176.411 232.111 L 81.52 232.111 L 128.965 104.161 Z" style="fill: rgb(12, 236, 224);" bx:shape="triangle 81.52 104.161 94.891 127.95 0.5 0 1@5c9dbeed"/>
+    <circle cx="250" cy="250" r="50" style="fill: rgb(115, 173, 127);"/>
+    <line style="stroke-width: 33px; fill: rgb(0, 207, 87); stroke: rgb(239, 50, 50);" x1="156.681" y1="300.128" x2="553.802" y2="70.133"/>
+    <circle cx="400" cy="450" r="150" style="fill: rgb(100, 0, 255);"/>
+    <circle cx="100" cy="400" r="70" style="fill: rgb(250, 0, 250);"/>
+    <path d="M 300.965 300.161 L 400.411 400.111 L 350.52 400.111 L 300.965 300.161 Z" style="fill: rgb(100, 250, 100);" bx:shape="triangle 81.52 104.161 94.891 127.95 0.5 0 1@5c9dbeed"/>
+    <line style="stroke-width: 50px; fill: rgb(0, 207, 87); stroke: rgb(0, 255, 0);" x1="30.681" y1="30.128" x2="420" y2="120"/>
+</svg>
