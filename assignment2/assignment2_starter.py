@@ -52,27 +52,32 @@ of the subtasks involved and how you might factor out common code between parts.
 You are free to modify these functions and organize your code however you like.
 """
 
-class Coordinate():
 
-    def __init__(self, x, y):
+class Coordinate:
+
+    def __init__(self, x, y, z=1.0, w=1.0):
         self.x = x
         self.y = y
+        self.z = z
+        self.w = w
 
         self.current = 0
 
     def __str__(self):
-        return f"({self.x}, {self.y})"
-    
+        return f"({self.x}, {self.y}, {self.z})"
+
     def __iter__(self):
         return self
-    
+
     def __next__(self):
         self.current += 1
         match self.current:
-            case 1: return self.x
-            case 2: return self.y
-            case _: raise StopIteration
-        
+            case 1:
+                return self.x
+            case 2:
+                return self.y
+            case _:
+                raise StopIteration
 
 
 def make_viewport_matrix(im_h: int, im_w: int) -> np.ndarray:
@@ -80,8 +85,8 @@ def make_viewport_matrix(im_h: int, im_w: int) -> np.ndarray:
     You're free to modify this function's signature; this is merely a suggested
     way to factor out a common subtask.
     """
-    # wtf is a viewpoer matrix: In short, it's the transformation of numbers in the range [-1, 1] 
-    # to numbers corresponding to pixels on the screen, which is a linear mapping computed with linear interpolation. 
+    # wtf is a viewpoer matrix: In short, it's the transformation of numbers in the range [-1, 1]
+    # to numbers corresponding to pixels on the screen, which is a linear mapping computed with linear interpolation.
     # https://www.mauriciopoppe.com/notes/computer-graphics/viewing/viewport-transform/
     # matrix: [
     #   [ (im_w*0.5), 0, 0, (im_w*0.5) ]
@@ -116,13 +121,12 @@ def make_orthographic_matrix(
     """
     return np.array(
         [
-            [ 2 / (r - l), 0, 0, -( (r + l) / (r - l) ) ],
-            [ 0, 2 / (t - b), 0, -( (t + b) / (t - b) ) ],
-            [ 0, 0, 2 / (n - f), -( (n + f) / (n - f) )],
-            [ 0, 0, 0, 1 ],
+            [2 / (r - l), 0, 0, -((r + l) / (r - l))],
+            [0, 2 / (t - b), 0, -((t + b) / (t - b))],
+            [0, 0, 2 / (n - f), -((n + f) / (n - f))],
+            [0, 0, 0, 1],
         ]
     )
-        
 
 
 def make_camera_matrix(
@@ -136,43 +140,33 @@ def make_camera_matrix(
     # g = lookat
     # t = up
 
-    # Methodology here: https://learnopengl.com/Getting-Started/Camera
+    # Methodology from here: https://learnopengl.com/Getting-Started/Camera and textbook
 
     cameraDirection = np.subtract(eye, lookat)
-    
-    w = cameraDirection / np.linalg.norm(cameraDirection) # normalized gaze vector
+
+    w = cameraDirection / np.linalg.norm(cameraDirection)  # normalized gaze vector
 
     u = np.cross(up, w) / np.linalg.norm(np.cross(up, w))
 
     v = np.cross(w, u)
 
-    # cross = np.cross(up, cameraDirection)
+    part1 = np.array(
+        [
+            [u[0], u[1], u[2], 0.0],
+            [v[0], v[1], v[2], 0.0],
+            [w[0], w[1], w[2], 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ]
+    )
 
-    # cameraRight = cross / np.linalg.norm(cross)
-
-    # cameraUp = np.cross(cameraDirection, cameraRight)
-
-
-    part1 = np.array([
-        [u[0], u[1], u[2], 0.0],
-        [v[0], v[1], v[2], 0.0],
-        [w[0], w[1], w[2], 0.0],
-        [0.0, 0.0, 0.0, 1.0]
-    ])
-
-    part2 = np.array([
-        [1.0, 0.0, 0.0, -eye[0]],
-        [0.0, 1.0, 0.0, -eye[1]],
-        [0.0, 0.0, 1.0, -eye[2]],
-        [0.0, 0.0, 0.0, 1.0]
-    ])
-
-    # return np.array([
-    #     [cameraRight[0], cameraRight[1], cameraRight[2], -np.dot(cameraRight, eye)],
-    #     [cameraUp[0], cameraUp[1], cameraUp[2], -np.dot(cameraUp, eye)],
-    #     [cameraDirection[0], cameraDirection[1], cameraDirection[2], -np.dot(cameraDirection, eye)],
-    #     [0.0, 0.0, 0.0, 1.0]
-    # ])
+    part2 = np.array(
+        [
+            [1.0, 0.0, 0.0, -eye[0]],
+            [0.0, 1.0, 0.0, -eye[1]],
+            [0.0, 0.0, 1.0, -eye[2]],
+            [0.0, 0.0, 0.0, 1.0],
+        ]
+    )
 
     return np.matmul(part1, part2)
 
@@ -184,7 +178,18 @@ def make_perspective_matrix(
     You're free to modify this function's signature; this is merely a suggested
     way to factor out a common subtask.
     """
-    pass
+    P = np.array(
+        [
+            [n, 0.0, 0.0, 0.0],
+            [0.0, n, 0.0, 0.0],
+            [0.0, 0.0, n + f, -(f * n)],
+            [0.0, 0.0, 1.0, 0.0],
+        ]
+    )
+
+    ortho = make_orthographic_matrix(n=n, f=f)
+
+    return np.matmul(ortho, P)
 
 
 def area(v1: Coordinate, v2: Coordinate, v3: Coordinate):
@@ -199,14 +204,16 @@ def area(v1: Coordinate, v2: Coordinate, v3: Coordinate):
     )
 
 
-def calc_coverage(face_vertices:list[Coordinate | tuple[float, float]], point:Coordinate):
+def calc_coverage(
+    face_vertices: list[Coordinate | tuple[float, float]], point: Coordinate
+):
     """
     You're free to modify this function's signature; this is merely a suggested
     way to factor out a common subtask.
     """
     # methodology from https://en.wikipedia.org/wiki/Barycentric_coordinate_system#Equations_in_barycentric_coordinates
 
-    v1,v2,v3 = face_vertices
+    v1, v2, v3 = face_vertices
 
     bigA = area(v1, v2, v3)
 
@@ -224,28 +231,26 @@ def calc_coverage(face_vertices:list[Coordinate | tuple[float, float]], point:Co
     )
 
 
-class BoundingBox():
+class BoundingBox:
 
-    def __init__(self, vertices:list[tuple[float|int, float|int] | Coordinate]):
+    def __init__(self, vertices: list[tuple[float | int, float | int] | Coordinate]):
         # check for mins and maxes based on paramter type
         match vertices[0]:
             case Coordinate():
-                self.min = Coordinate (
+                self.min = Coordinate(
                     min(v.x for v in vertices),
                     min(v.y for v in vertices),
                 )
-                self.max = Coordinate (
+                self.max = Coordinate(
                     max(v.x for v in vertices),
                     max(v.y for v in vertices),
                 )
             case _:
-                self.min : Coordinate = Coordinate(
-                    min(x[0] for x in vertices),
-                    min(y[1] for y in vertices)
+                self.min: Coordinate = Coordinate(
+                    min(x[0] for x in vertices), min(y[1] for y in vertices)
                 )
-                self.max : Coordinate = Coordinate(
-                    max(x[0] for x in vertices),
-                    max(y[1] for y in vertices)
+                self.max: Coordinate = Coordinate(
+                    max(x[0] for x in vertices), max(y[1] for y in vertices)
                 )
 
         self._vertices = vertices
@@ -257,21 +262,27 @@ class BoundingBox():
         self.max.y = int(np.ceil(self.max.y))
 
     def __str__(self) -> str:
-        return f"Min: ({self.min.x}, {self.min.y})  |   Max: ({self.max.x}, {self.max.y})"
+        return (
+            f"Min: ({self.min.x}, {self.min.y})  |   Max: ({self.max.x}, {self.max.y})"
+        )
 
 
-def calc_triangle_bounding_box(obj:TriangleMesh, face: np.ndarray):
+def calc_triangle_bounding_box(obj: TriangleMesh, face: np.ndarray):
     """
     You're free to modify this function's signature; this is merely a suggested
     way to factor out a common subtask.
     """
-    _2D_vertices = [(float(obj.vertices[x][0]), float(obj.vertices[x][1])) for x in face]
+    _2D_vertices = [
+        (float(obj.vertices[x][0]), float(obj.vertices[x][1])) for x in face
+    ]
 
     # get bounding box
     return BoundingBox(_2D_vertices)
 
 
-def NCD_2_SC(mvp:np.ndarray, point:tuple[int|float,int|float]) -> tuple[int, int]:
+def NCD_2_SC(
+    mvp: np.ndarray, point: tuple[int | float, int | float]
+) -> tuple[int, int]:
     """
     Map Canonical / NCD Coordinates to Screen Coordinates
 
@@ -282,17 +293,20 @@ def NCD_2_SC(mvp:np.ndarray, point:tuple[int|float,int|float]) -> tuple[int, int
     Returns:
         a tuple of ints, because screen should consider real numbers!
     """
-    point = np.array([
+    point = np.array(
+        [
             point[0],
             point[1],
             1.0,
             1.0,
-    ])
+        ]
+    )
 
     sc = np.matmul(mvp, point)
     return (int(sc[0]), int(sc[1]))
 
-def SC_2_NCD(pixel:tuple[int|float, int|float], im_w, im_h) -> np.ndarray:
+
+def SC_2_NCD(pixel: tuple[int | float, int | float], im_w, im_h) -> np.ndarray:
     # screen origin = (-1, 1) top (y = 1) and left (x = -1)
     ncd_x = (pixel[0] / im_w - 0.5) * 2
     ncd_y = -(pixel[1] / im_h - 0.5) * 2
@@ -300,14 +314,19 @@ def SC_2_NCD(pixel:tuple[int|float, int|float], im_w, im_h) -> np.ndarray:
     return (ncd_x, ncd_y)
 
 
-def ortho_2_SC(point:Coordinate, matrix:np.ndarray) -> Coordinate:
+def ortho_2_SC(point: Coordinate, matrix: np.ndarray) -> Coordinate:
     pixel = np.matmul(matrix, np.array([point.x, point.y, 1.0, 1.0]))
     return Coordinate(pixel[0], pixel[1])
 
 
-def cam_2_SC(point:Coordinate, matrix:np.ndarray) -> Coordinate:
-    pixel = np.matmul(matrix, np.array([point.x, point.y, 1.0, 1.0]))
+def cam_2_SC(point: Coordinate, matrix: np.ndarray) -> Coordinate:
+    pixel = np.matmul(matrix, np.array([point.x, point.y, point.z, 1.0]))
     return Coordinate(pixel[0], pixel[1])
+
+
+def per_2_SC(point: Coordinate, matrix: np.ndarray) -> Coordinate:
+    pixel = np.matmul(matrix, np.array([point.x, point.y, point.z, point.w]))
+    return Coordinate(pixel[0], pixel[1], pixel[2], pixel[3])
 
 
 def update_zbuffer(zbuffer: np.ndarray, YOUR_OTHER_ARGUMENTS_ETC):
@@ -333,8 +352,8 @@ def render_viewport(obj: TriangleMesh, im_w: int, im_h: int) -> np.ndarray:
     handout pdf (but turn that off when you submit your code)
     """
     img = np.zeros((im_h, im_w, 3))
-    mvp = make_viewport_matrix(im_w = im_w, im_h = im_h)
-   
+    mvp = make_viewport_matrix(im_w=im_w, im_h=im_h)
+
     for idx, face in enumerate(obj.faces):
         bb = calc_triangle_bounding_box(obj, face)
         sc_vertices = [
@@ -344,7 +363,6 @@ def render_viewport(obj: TriangleMesh, im_w: int, im_h: int) -> np.ndarray:
         for v in sc_vertices:
             v = (v[0], v[1])
             img[v[1], v[0]] = obj.face_colors[idx]
-
 
     return save_image("p1.png", img)
 
@@ -360,13 +378,15 @@ def render_ortho(obj: TriangleMesh, im_w: int, im_h: int) -> np.ndarray:
 
     # for each face (triangle)
     #   get its bounding box in ortho space
-    #   for all ortho space points in that bounding box, 
+    #   for all ortho space points in that bounding box,
     #       check if they are inside the face / triangle --> fill the corresponding image space pixel
 
     for face_idx, face in enumerate(obj.faces):
-        
+
         # get the vertices of the face (triangle)
-        face_vertices = [Coordinate(obj.vertices[x][0], obj.vertices[x][1]) for x in face]
+        face_vertices = [
+            Coordinate(obj.vertices[x][0], obj.vertices[x][1]) for x in face
+        ]
 
         # convert them to screen coordinates
         face_vertices = [ortho_2_SC(v, bigM) for v in face_vertices]
@@ -375,13 +395,12 @@ def render_ortho(obj: TriangleMesh, im_w: int, im_h: int) -> np.ndarray:
         bb = BoundingBox(face_vertices)
         bb.to_int()
 
-        for x in range(bb.min.x, bb.max.x+1):
-            for y in range(bb.min.y, bb.max.y+1):
-                center = Coordinate(x+0.5, y+0.5)
+        for x in range(bb.min.x, bb.max.x + 1):
+            for y in range(bb.min.y, bb.max.y + 1):
+                center = Coordinate(x + 0.5, y + 0.5)
 
                 if calc_coverage(face_vertices, center):
                     img[y, x] = obj.face_colors[face_idx]
-
 
     return save_image("p2.png", img)
 
@@ -393,34 +412,33 @@ def render_camera(obj: TriangleMesh, im_w: int, im_h: int) -> np.ndarray:
     mvp = make_viewport_matrix(im_w=im_w, im_h=im_h)
     ortho = make_orthographic_matrix()
     cam = make_camera_matrix(
-        eye = np.array([0.2, 0.2, 1.0]),
-        lookat = np.array([0.0, 0.0, 0.0]),
-        up = np.array([0.0, 1.0, 0.0]),
+        eye=np.array([0.2, 0.2, 1.0]),
+        lookat=np.array([0.0, 0.0, 0.0]),
+        up=np.array([0.0, 1.0, 0.0]),
     )
 
     smallM = np.matmul(mvp, ortho)
 
     bigM = np.matmul(smallM, cam)
 
-    #raise Exception("pause render")
-
     for face_idx, face in enumerate(obj.faces):
-        
+
         # get the vertices of the face (triangle)
-        face_vertices = [Coordinate(obj.vertices[x][0], obj.vertices[x][1]) for x in face]
+        face_vertices = [
+            Coordinate(obj.vertices[x][0], obj.vertices[x][1], obj.vertices[x][2])
+            for x in face
+        ]
 
         # convert them to screen coordinates
         face_vertices = [cam_2_SC(v, bigM) for v in face_vertices]
-
 
         # get the bounding box of the triangle
         bb = BoundingBox(face_vertices)
         bb.to_int()
 
-        for x in range(bb.min.x, bb.max.x+1):
-            for y in range(bb.min.y, bb.max.y+1):
-                center = Coordinate(x+0.5, y+0.5)
-
+        for x in range(bb.min.x, bb.max.x + 1):
+            for y in range(bb.min.y, bb.max.y + 1):
+                center = Coordinate(x + 0.5, y + 0.5)
                 if calc_coverage(face_vertices, center):
                     img[y, x] = obj.face_colors[face_idx]
 
@@ -430,7 +448,39 @@ def render_camera(obj: TriangleMesh, im_w: int, im_h: int) -> np.ndarray:
 # P4
 def render_perspective(obj: TriangleMesh, im_w: int, im_h: int) -> np.ndarray:
     """Render the perspective projection with perspective divide"""
-    return save_image("p4.png", YOUR_IMAGE_ARRAY_HERE)
+    img = np.zeros((im_h, im_w, 3))
+    mvp = make_viewport_matrix(im_w=im_w, im_h=im_h)
+    per = make_perspective_matrix(fovy=65.0, aspect=4 / 3, n=-1, f=-100)
+    cam = make_camera_matrix(
+        eye=np.array([1.0, 1.0, 1.0]),
+        lookat=np.array([0.0, 0.0, 0.0]),
+        up=np.array([0.0, 1.0, 0.0]),
+    )
+
+    smallM = np.matmul(mvp, per)
+
+    bigM = np.matmul(smallM, cam)
+
+    for face_idx, face in enumerate(obj.faces):
+
+        # get the vertices of the face (triangle)
+        face_vertices = [
+            Coordinate(obj.vertices[x][0], obj.vertices[x][1], obj.vertices[x][2], 1.0)
+            for x in face
+        ]
+
+        # convert them to screen coordinates
+        face_vertices = [per_2_SC(v, bigM) for v in face_vertices]
+
+        # get the bounding box of the triangle
+        bb = BoundingBox(face_vertices)
+        bb.to_int()
+
+        for x in range(bb.min.x, bb.max.x + 1):
+            for y in range(bb.min.y, bb.max.y + 1):
+                pixel = per_2_SC(Coordinate())
+
+    return save_image("p4.png", img)
 
 
 # P5
@@ -640,7 +690,7 @@ if __name__ == "__main__":
     # NOTE for your own testing purposes:
     # Uncomment and run each of these commented-out functions after you've filled them out
 
-    #render_viewport(cube, im_w, im_h)
+    # render_viewport(cube, im_w, im_h)
     ortho_vertices = np.array(
         [
             [1.0, 1.0, 1.5],
@@ -654,11 +704,12 @@ if __name__ == "__main__":
         ]
     )
     ortho_cube = TriangleMesh(ortho_vertices, triangles, triangle_colors)
-    #render_ortho(ortho_cube, im_w, im_h)
+    # render_ortho(ortho_cube, im_w, im_h)
 
-    render_camera(ortho_cube, im_w, im_h)
+    # render_camera(ortho_cube, im_w, im_h)
+
+    render_perspective(cube, im_w, im_h)
     raise Exception("breakpoint!")
-    # render_perspective(cube, im_w, im_h)
     vertex_colors = np.array(
         [
             [1.0, 0.0, 0.0],
