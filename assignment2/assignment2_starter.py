@@ -64,7 +64,7 @@ class Coordinate:
         self.current = 0
 
     def __str__(self):
-        return f"({self.x}, {self.y}, {self.z})"
+        return f"({self.x}, {self.y}, {self.z}, {self.w})"
 
     def __iter__(self):
         return self
@@ -187,9 +187,14 @@ def make_perspective_matrix(
         ]
     )
 
-    ortho = make_orthographic_matrix(n=n, f=f)
+    t = (np.tan(fovy / 2) * np.abs(n))
+
+    right = (aspect * t)
+
+    ortho = make_orthographic_matrix(r=right, l=0-right, t=t, b=0-t, n=n, f=f)
 
     return np.matmul(ortho, P)
+    #return P
 
 
 def area(v1: Coordinate, v2: Coordinate, v3: Coordinate):
@@ -204,15 +209,7 @@ def area(v1: Coordinate, v2: Coordinate, v3: Coordinate):
     )
 
 
-def calc_coverage(
-    face_vertices: list[Coordinate | tuple[float, float]], point: Coordinate
-):
-    """
-    You're free to modify this function's signature; this is merely a suggested
-    way to factor out a common subtask.
-    """
-    # methodology from https://en.wikipedia.org/wiki/Barycentric_coordinate_system#Equations_in_barycentric_coordinates
-
+def get_barycentric_coordinates(face_vertices: list[Coordinate | tuple[float, float]], point: Coordinate) -> list[float]:
     v1, v2, v3 = face_vertices
 
     bigA = area(v1, v2, v3)
@@ -223,6 +220,24 @@ def calc_coverage(
     alpha = area(point, v2, v3) / bigA
     beta = area(v1, point, v3) / bigA
     gamma = area(v1, v2, point) / bigA
+
+    return [alpha, beta, gamma]
+
+
+def calc_coverage(
+    face_vertices: list[Coordinate | tuple[float, float]], point: Coordinate
+):
+    """
+    You're free to modify this function's signature; this is merely a suggested
+    way to factor out a common subtask.
+    """
+    # methodology from https://en.wikipedia.org/wiki/Barycentric_coordinate_system#Equations_in_barycentric_coordinates
+
+    barycentric = get_barycentric_coordinates(face_vertices, point)
+
+    if not barycentric: return False
+
+    alpha, beta, gamma = barycentric
 
     return (
         (0 - 1e-15) <= alpha <= (1 + 1e-15)
@@ -326,7 +341,7 @@ def cam_2_SC(point: Coordinate, matrix: np.ndarray) -> Coordinate:
 
 def per_2_SC(point: Coordinate, matrix: np.ndarray) -> Coordinate:
     pixel = np.matmul(matrix, np.array([point.x, point.y, point.z, point.w]))
-    return Coordinate(pixel[0], pixel[1], pixel[2], pixel[3])
+    return Coordinate(pixel[0]/pixel[3], pixel[1]/pixel[3], pixel[2], pixel[3])
 
 
 def update_zbuffer(zbuffer: np.ndarray, YOUR_OTHER_ARGUMENTS_ETC):
@@ -448,9 +463,11 @@ def render_camera(obj: TriangleMesh, im_w: int, im_h: int) -> np.ndarray:
 # P4
 def render_perspective(obj: TriangleMesh, im_w: int, im_h: int) -> np.ndarray:
     """Render the perspective projection with perspective divide"""
+    n = -1
+    f = -100
     img = np.zeros((im_h, im_w, 3))
     mvp = make_viewport_matrix(im_w=im_w, im_h=im_h)
-    per = make_perspective_matrix(fovy=65.0, aspect=4 / 3, n=-1, f=-100)
+    per = make_perspective_matrix(fovy=65.0, aspect=4 / 3, n=n, f=f)
     cam = make_camera_matrix(
         eye=np.array([1.0, 1.0, 1.0]),
         lookat=np.array([0.0, 0.0, 0.0]),
@@ -478,7 +495,10 @@ def render_perspective(obj: TriangleMesh, im_w: int, im_h: int) -> np.ndarray:
 
         for x in range(bb.min.x, bb.max.x + 1):
             for y in range(bb.min.y, bb.max.y + 1):
-                pixel = per_2_SC(Coordinate())
+                pixel = Coordinate(x+0.5, y+0.5)
+
+                if calc_coverage(face_vertices, pixel):
+                    img[y, x] = obj.face_colors[face_idx]
 
     return save_image("p4.png", img)
 
@@ -486,7 +506,47 @@ def render_perspective(obj: TriangleMesh, im_w: int, im_h: int) -> np.ndarray:
 # P5
 def render_zbuffer_with_color(obj: TriangleMesh, im_w: int, im_h: int) -> np.ndarray:
     """Render the input with z-buffering and color interpolation enabled"""
-    return save_image("p5.png", YOUR_IMAGE_ARRAY_HERE)
+    n = -1
+    f = -100
+    img = np.zeros((im_h, im_w, 3))
+    mvp = make_viewport_matrix(im_w=im_w, im_h=im_h)
+    per = make_perspective_matrix(fovy=65.0, aspect=4 / 3, n=n, f=f)
+    cam = make_camera_matrix(
+        eye=np.array([1.0, 1.0, 1.0]),
+        lookat=np.array([0.0, 0.0, 0.0]),
+        up=np.array([0.0, 1.0, 0.0]),
+    )
+
+    smallM = np.matmul(mvp, per)
+
+    bigM = np.matmul(smallM, cam)
+
+    for face_idx, face in enumerate(obj.faces):
+
+        # get the vertices of the face (triangle)
+        face_vertices = [
+            Coordinate(obj.vertices[x][0], obj.vertices[x][1], obj.vertices[x][2], 1.0)
+            for x in face
+        ]
+
+        # convert them to screen coordinates
+        face_vertices = [per_2_SC(v, bigM) for v in face_vertices]
+
+        # get the bounding box of the triangle
+        bb = BoundingBox(face_vertices)
+        bb.to_int()
+
+        for x in range(bb.min.x, bb.max.x + 1):
+            for y in range(bb.min.y, bb.max.y + 1):
+                center = Coordinate(x+0.5, y+0.5)
+
+                if calc_coverage(face_vertices, center):
+                    alpha, beta, gamma = get_barycentric_coordinates(face_vertices, Coordinate(x, y))
+                    color = [alpha*obj.vertex_colors[face[0]], beta*obj.vertex_colors[face[1]], gamma*obj.vertex_colors[face[2]]]
+
+                    img[y, x] = color
+
+    return save_image("p5.png", img)
 
 
 # P6
@@ -708,8 +768,7 @@ if __name__ == "__main__":
 
     # render_camera(ortho_cube, im_w, im_h)
 
-    render_perspective(cube, im_w, im_h)
-    raise Exception("breakpoint!")
+    #render_perspective(cube, im_w, im_h)
     vertex_colors = np.array(
         [
             [1.0, 0.0, 0.0],
@@ -723,7 +782,9 @@ if __name__ == "__main__":
         ]
     )
     cube.vertex_colors = vertex_colors
-    # render_zbuffer_with_color(cube, im_w, im_h)
+    render_zbuffer_with_color(cube, im_w, im_h)
+
+    raise Exception("breakpoint!")
 
     objlist = get_big_scene()
     # render_big_scene(objlist, im_w, im_h)
