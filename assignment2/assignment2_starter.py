@@ -658,6 +658,22 @@ def my_cube_uvs(cube: TriangleMesh) -> np.ndarray:
     """
     # You may find it helpful to start with this array and fill it out with correct values.
     uvs = np.zeros((len(cube.faces), 3, 2))
+    i = 0
+    while i < len(cube.faces) - 1:
+        face1 = cube.faces[i]
+        face2 = cube.faces[i + 1]
+
+        uvs[i][0] = [1, 1]  # u,v of vertex 1
+        uvs[i][1] = [0, 1]  # u,v of vertex 2
+        uvs[i][2] = [1, 0]  # u,v of vertex 3
+
+        uvs[i + 1][0] = [1, 0]  # u,v of vertex 1
+        uvs[i + 1][1] = [0, 1]  # u,v of vertex 2
+        uvs[i + 1][2] = [0, 0]  # u,v of vertex 3
+
+        i = i + 2
+
+    # print(uvs)
     return uvs
 
 
@@ -670,7 +686,74 @@ def texture_map(
     each of the 3 corners of each face
     `img` has shape (height, width, 3)
     """
-    return save_image("p7.png", YOUR_IMAGE_ARRAY_HERE)
+    t_w = t_h = len(img) - 1
+    zbuffer = np.zeros((im_w, im_h, 1))
+    zbuffer.fill(np.inf)
+    output = np.zeros((im_h, im_w, 3))
+
+    mvp = make_viewport_matrix(im_w=im_w, im_h=im_h)
+    per = make_perspective_matrix(fovy=65.0, aspect=4 / 3, n=-1, f=-100)
+    cam = make_camera_matrix(
+        eye=np.array([1.0, 1.0, 1.0]),
+        lookat=np.array([0.0, 0.0, 0.0]),
+        up=np.array([0.0, 1.0, 0.0]),
+    )
+
+    smallM = np.matmul(mvp, per)
+
+    bigM = np.matmul(smallM, cam)
+
+    for face_idx, face in enumerate(obj.faces):
+
+        # get the vertices of the face (triangle)
+        face_vertices = [
+            Coordinate(obj.vertices[x][0], obj.vertices[x][1], obj.vertices[x][2], 1.0)
+            for x in face
+        ]
+
+        # convert them to screen coordinates
+        face_vertices = [per_2_SC(v, bigM) for v in face_vertices]
+
+        # get the bounding box of the triangle
+        bb = BoundingBox(face_vertices)
+        bb.to_int()
+
+        for x in range(bb.min.x, bb.max.x + 1):
+            for y in range(bb.min.y, bb.max.y + 1):
+                # print(x, y)
+                center = Coordinate(x + 0.5, y + 0.5)
+
+                if calc_coverage(face_vertices, center):
+                    # alpha = without v1
+                    # beta = without v2
+                    # gamma = without v3
+                    alpha, beta, gamma = get_barycentric_coordinates(
+                        face_vertices, Coordinate(x, y)
+                    )
+
+                    # get the u,v coordinates for each vertex of the face
+                    uvVertices = [uvs[face_idx][i] for i in range(len(face))]
+
+                    u, v = (
+                        uvVertices[0] * alpha
+                        + uvVertices[1] * beta
+                        + uvVertices[2] * gamma
+                    )
+
+                    i = round(u * t_w - 0.5) % t_w
+                    j = round(v * t_h - 0.5) % t_h
+
+                    color = img[j, i]
+
+                    d1, d2, d3 = [v.z for v in face_vertices]
+
+                    depth = (d1 * alpha) + (d2 * beta) + (d3 * gamma)
+
+                    if depth < zbuffer[x, y]:
+                        zbuffer[x, y] = depth
+                        output[y, x] = color
+
+    return save_image("p7.png", output)
 
 
 ####### setup stuff
