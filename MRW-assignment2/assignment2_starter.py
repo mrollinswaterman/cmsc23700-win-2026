@@ -183,15 +183,6 @@ def make_perspective_matrix(
 
     fovy = np.deg2rad(fovy)
 
-    # per = np.array(
-    #     [
-    #         [1 / (aspect * np.tan(fovy / 2)), 0, 0, 0],
-    #         [0, 1 / (np.tan(fovy / 2)), 0, 0],
-    #         [0, 0, (n + f) / (n - f), (-2 * n * f) / (n - f)],
-    #         [0, 0, -1, 0],
-    #     ]
-    # )
-
     P = np.array(
         [
             [n, 0.0, 0.0, 0.0],
@@ -231,7 +222,7 @@ def get_barycentric_coordinates(
     bigA = area(v1, v2, v3)
 
     if bigA == 0:
-        return False
+        bigA += 0.000001
 
     alpha = area(point, v2, v3) / bigA
     beta = area(v1, point, v3) / bigA
@@ -574,7 +565,7 @@ def render_zbuffer_with_color(obj: TriangleMesh, im_w: int, im_h: int) -> np.nda
                     # find the color (c) at each vertex of the face
                     c1, c2, c3 = [obj.vertex_colors[i] for i in face]
 
-                    # interpolate the color
+                    # interpolate the color for the current pixel
                     color = np.array(c1 * alpha + c2 * beta + c3 * gamma)
 
                     # find the depth / z coordinate for each face
@@ -642,9 +633,14 @@ def render_big_scene(
                         alpha, beta, gamma = get_barycentric_coordinates(
                             face_vertices, Coordinate(x, y)
                         )
+
+                        # get the colors for each vertex of the face
                         c1, c2, c3 = [obj.vertex_colors[i] for i in face]
 
+                        # use those vertex colors to interpolate color for the current pixel
                         color = np.array(c1 * alpha + c2 * beta + c3 * gamma)
+
+                        # depth interpolation again (see render_z-buffer)
 
                         d1, d2, d3 = [v.z for v in face_vertices]
 
@@ -690,8 +686,6 @@ def my_cube_uvs(cube: TriangleMesh) -> np.ndarray:
         uvs[i + 1][2] = [0, 0]  # u,v of vertex 3
 
         i = i + 2
-
-    # print(uvs)
     return uvs
 
 
