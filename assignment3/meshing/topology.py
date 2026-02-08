@@ -102,7 +102,59 @@ class Topology:
         its other properties (the face, vertex, edge, next, twin if a Halfedge, and a
         halfedge if a Face, Vertex, or Edge).
         """
-        raise NotImplementedError("TODO (P1)")
+
+        visited_edges:dict[tuple: Edge] = dict()
+
+        for n in range(0, n_vertices):
+            self.vertices.allocate()
+
+        for face in indices:
+            f = self.faces.allocate()
+
+            my_half_edges:list[Halfedge] = []
+            for i in range(0, len(face)):
+                my_half_edges.append(self.halfedges.allocate())
+
+            for enum, index in enumerate(face):
+                he:Halfedge = my_half_edges[enum]
+
+                v = self.vertices[index]
+                # set fields for halfedge
+                he.vertex = v
+                he.face = f
+                # set fields for linking to halfedge
+                v.halfedge = he
+                f.halfedge = he
+
+                # check if we have reached the last element in the half edge list
+                try:
+                    # if no, set .next to the next element in the list
+                    he.next = my_half_edges[enum+1]
+                    edge_vertices = (he.vertex, self.vertices[face[enum+1]])
+                except IndexError:
+                    # if yes, loop to the beginning of the list and set .next that way
+                    he.next = my_half_edges[0]
+                    edge_vertices = (he.vertex, self.vertices[face[0]])
+
+                visited = False
+
+                for entry in visited_edges:
+                    if edge_vertices[0] in entry and edge_vertices[1] in entry:
+                        visited = True
+                        edge_vertices = entry
+                        break
+
+                if visited: # edge has been visited
+                    e = visited_edges[edge_vertices]
+                    he.twin = e.halfedge
+                    e.halfedge.twin = he
+                    he.edge = e
+                else: # edge has not been visited yet
+                    e = self.edges.allocate()
+                    he.edge = e
+                    e.halfedge = he
+                    visited_edges[edge_vertices] = e
+
         self.thorough_check()
 
     def compactify_keys(self):
@@ -198,6 +250,7 @@ class Topology:
             for he in v.adjacentHalfedges():
                 assert he.vertex == v
                 hes.append(he)
+            #raise Exception
             encountered_halfedges.extend([elem.index for elem in hes])
         encountered_halfedges = set(encountered_halfedges)
         assert encountered_halfedges == set(self.halfedges.keys()), (
@@ -230,7 +283,6 @@ class Topology:
             hes = []
             for he in f.adjacentHalfedges():
                 hes.append(he)
-
             n = len(hes)
             for i, he in enumerate(hes):
                 assert he.face == f

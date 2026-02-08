@@ -14,6 +14,13 @@ generators via the "yield" statement in loops. But returning simple lists/tuples
 of the requested objects will also work just fine.
 """
 
+"""
+Documentation:
+    Adjecency Query Logic from:
+        - https://www.flipcode.com/archives/The_Half-Edge_Data_Structure.shtml
+        - https://cs418.cs.illinois.edu/website/text/halfedge.html
+"""
+
 
 class UninitializedHalfedgePropertyError(BaseException):
     """
@@ -162,12 +169,12 @@ class Halfedge(Primitive):
     def prev(self) -> "Halfedge":
         # TODO: P2 -- complete this function
         """Return previous halfedge"""
-        raise NotImplementedError("TODO (P2)")
+        return self.next.next
 
     def tip_vertex(self) -> "Vertex":
         # TODO: P2 -- complete this function
         """Return vertex on the tip of the halfedge"""
-        raise NotImplementedError("TODO (P2)")
+        return self.twin.vertex
 
     def serialize(self):
         return (
@@ -193,7 +200,8 @@ class Edge(Primitive):
         return the two incident vertices of the edge
         note that the incident vertices are ambiguous to ordering
         """
-        raise NotImplementedError("TODO (P2)")
+        return (self.halfedge.vertex, self.halfedge.next.vertex)
+        #raise NotImplementedError("TODO (P2)")
 
 
 class Face(Primitive):
@@ -206,11 +214,18 @@ class Face(Primitive):
     def adjacentHalfedges(self) -> Iterable[Halfedge]:
         # TODO: P2 -- complete this function
         """Return an iterable of adjacent halfedges"""
+        adj = [self.halfedge]
+        he = self.halfedge.next
+        while he != self.halfedge:
+            adj.append(he)
+            he = he.next
+        return adj
         raise NotImplementedError("TODO (P2)")
 
     def adjacentVertices(self) -> Iterable["Vertex"]:
         # TODO: P2 -- complete this function
         """Return an iterable of adjacent vertices"""
+
         raise NotImplementedError("TODO (P2)")
 
     def adjacentEdges(self) -> Iterable[Edge]:
@@ -246,19 +261,39 @@ class Vertex(Primitive):
     def adjacentHalfedges(self) -> Iterable[Halfedge]:
         # TODO: P2 -- complete this function
         """Return an iterable of adjacent halfedges"""
-        raise NotImplementedError("TODO (P2)")
+        adj = [self.halfedge]
+        he = self.halfedge.twin.next
+        while (he != self.halfedge):
+            adj.append(he)
+            he = he.twin.next
+        return adj
 
     def adjacentVertices(self) -> Iterable["Vertex"]:
         # TODO: P2 -- complete this function
         """Return an iterable of adjacent vertices"""
-        raise NotImplementedError("TODO (P2)")
+        adj = [self.halfedge.vertex]
+        he = self.halfedge.twin
+        while he.next != self.halfedge:
+            adj.append(he.vertex)
+            he = he.next.twin
+        return adj
 
     def adjacentEdges(self) -> Iterable[Edge]:
         # TODO: P2 -- complete this function
         """Return an iterable of adjacent edges"""
-        raise NotImplementedError("TODO (P2)")
+        adj = [self.halfedge.edge]
+        he = self.halfedge.twin.next
+        while he != self.halfedge:
+            adj.append(he.edge)
+            he = he.twin.next
+        return adj
 
     def adjacentFaces(self) -> Iterable[Face]:
         # TODO: P2 -- complete this function
         """Return an iterable of adjacent faces"""
-        raise NotImplementedError("TODO (P2)")
+        adj = [self.halfedge.face]
+        he = self.halfedge.twin.next
+        while he != self.halfedge:
+            adj.append(he.face)
+            he = he.twin.next
+        return adj
