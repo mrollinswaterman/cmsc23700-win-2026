@@ -107,7 +107,7 @@ class Mesh:
     # TODO: P4 -- complete this
     def vector(self, h: Halfedge) -> np.ndarray:
         """Given a halfedge primitive, return the vector"""
-        return np.array([[self.get_3d_pos(h.vertex), self.get_3d_pos(h.tip_vertex)]])
+        return np.array([[self.get_3d_pos(h.vertex), self.get_3d_pos(h.tip_vertex())]])
 
     # TODO: P4 -- complete this
     def faceNormal(self, f: Face) -> np.ndarray:
