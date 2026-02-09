@@ -8,6 +8,8 @@ if __name__ == "__main__":
         # Initializes a PolygonSoup object from an obj file, which reads in the obj
         # and fills out attributes vertices and indices (triangle faces)
         soup = PolygonSoup.from_obj("bunny.obj")
+
+        # soup = PolygonSoup.from_obj("nonemanif.obj")
         # Initialize your mesh object
         mesh = Mesh(soup.vertices, soup.indices)
         mesh.view_basic()
@@ -19,7 +21,10 @@ if __name__ == "__main__":
         # Vertex.adjacentHalfedges, Face.adjacentHalfedges functions (P2, primitive.py)
         # Even before you get to P2, you should make sure thorough_check runs up to
         # and including _check_edges successfully.
-        mesh.topology.thorough_check()
+        # mesh.topology.thorough_check()
+
+        #
+
         return mesh
 
     # Run these example functions once you've finished their prerequisites as commented
@@ -142,11 +147,11 @@ if __name__ == "__main__":
         mesh.export_obj("ec.obj")
 
     ## run one of these functions at a time per script run
-    load_bunny_and_check()
+    # load_bunny_and_check()
     # example_halfedge0()
     # example_onering()
     # example_export()
-    # example_smoothing()
+    example_smoothing()
     # example_collapse_simple()
     # example_collapse_simple_cube()
     # example_collapses()

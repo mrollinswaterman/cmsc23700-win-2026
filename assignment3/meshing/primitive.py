@@ -201,7 +201,7 @@ class Edge(Primitive):
         note that the incident vertices are ambiguous to ordering
         """
         return (self.halfedge.vertex, self.halfedge.next.vertex)
-        #raise NotImplementedError("TODO (P2)")
+        # raise NotImplementedError("TODO (P2)")
 
 
 class Face(Primitive):
@@ -220,23 +220,42 @@ class Face(Primitive):
             adj.append(he)
             he = he.next
         return adj
-        raise NotImplementedError("TODO (P2)")
 
     def adjacentVertices(self) -> Iterable["Vertex"]:
         # TODO: P2 -- complete this function
         """Return an iterable of adjacent vertices"""
-
-        raise NotImplementedError("TODO (P2)")
+        adj = [self.halfedge.vertex]
+        he = self.halfedge.next
+        while he != self.halfedge:
+            adj.append(he.vertex)
+            he = he.next
+        return adj
+        # raise NotImplementedError("TODO (P2)")
 
     def adjacentEdges(self) -> Iterable[Edge]:
         # TODO: P2 -- complete this function
         """Return an iterable of adjacent edges"""
+        # adj = [self.halfedge.edge, self.halfedge.prev().edge, self.halfedge.next.edge]
+        # adj.append(self.halfedge.twin)
+        # he.append(self.halfedge.twin)
+        # he = self.halfedge.next
+        # while he != self.halfedge:
+        #     adj.append(he.edge)
+        #     he = he.next
+
+        return [self.halfedge.edge, self.halfedge.prev().edge, self.halfedge.next.edge]
+
         raise NotImplementedError("TODO (P2)")
 
     def adjacentFaces(self) -> Iterable["Face"]:
         # TODO: P2 -- complete this function
         """Return an iterable of adjacent faces"""
-        raise NotImplementedError("TODO (P2)")
+        adj = [self.halfedge.face]
+        he = self.halfedge.twin
+        while he.next != self.halfedge:
+            adj.append(he.face)
+            he = he.next.twin
+        return adj
 
 
 class Vertex(Primitive):
@@ -249,7 +268,7 @@ class Vertex(Primitive):
     def degree(self) -> int:
         # TODO: P2 -- complete this function
         """Return vertex degree: # of incident edges"""
-        raise NotImplementedError("TODO (P2)")
+        return len(self.adjacentEdges())
 
     def isIsolated(self) -> bool:
         try:
@@ -263,7 +282,7 @@ class Vertex(Primitive):
         """Return an iterable of adjacent halfedges"""
         adj = [self.halfedge]
         he = self.halfedge.twin.next
-        while (he != self.halfedge):
+        while he != self.halfedge:
             adj.append(he)
             he = he.twin.next
         return adj

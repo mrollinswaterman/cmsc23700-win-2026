@@ -33,7 +33,36 @@ class LaplacianSmoothing(MeshEdit):
 
     def apply(self):
         # TODO: P5 -- complete this function
-        raise NotImplementedError("TODO (P5)")
+        for i in range(0, self.n_iter):
+            new_positions = {
+                self.mesh.topology.vertices[v]: None
+                for v in self.mesh.topology.vertices
+            }
+
+            for v in self.mesh.topology.vertices:
+                v = self.mesh.topology.vertices[v]
+                neighbors = v.adjacentVertices()
+
+                n_positions = [self.mesh.get_3d_pos(v) for v in neighbors]
+                x_tot = 0
+                y_tot = 0
+                z_tot = 0
+                for item in n_positions:
+                    x_tot += item[0]
+                    y_tot += item[1]
+                    z_tot += item[2]
+
+                new_pos = np.array(
+                    [
+                        x_tot / len(n_positions),
+                        y_tot / len(n_positions),
+                        z_tot / len(n_positions),
+                    ]
+                )
+
+                new_positions[v.index] = new_pos
+
+        # raise NotImplementedError("TODO (P5)")
 
 
 class EdgeCollapse(MeshEdit):

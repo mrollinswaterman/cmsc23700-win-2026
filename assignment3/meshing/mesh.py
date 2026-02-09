@@ -59,8 +59,12 @@ class Mesh:
         """
         # face and edge arrays that use the vertex's ElemCollection keys (the
         # vertex.index field) rather than packed array indices
-        faces__v_keys = np.array(self.topology.export_face_connectivity(), dtype=np.uint32)
-        edges__v_keys = np.array(self.topology.export_edge_connectivity(), dtype=np.uint32)
+        faces__v_keys = np.array(
+            self.topology.export_face_connectivity(), dtype=np.uint32
+        )
+        edges__v_keys = np.array(
+            self.topology.export_edge_connectivity(), dtype=np.uint32
+        )
 
         packed2key = np.array(sorted(self.topology.vertices.keys()), dtype=np.uint32)
         n_packed_vertices = len(packed2key)
@@ -72,7 +76,13 @@ class Mesh:
 
         faces__v_packed_idx = key2packed[faces__v_keys]
         edges__v_packed_idx = key2packed[edges__v_keys]
-        return (vertices, faces__v_packed_idx, edges__v_packed_idx, packed2key, key2packed)
+        return (
+            vertices,
+            faces__v_packed_idx,
+            edges__v_packed_idx,
+            packed2key,
+            key2packed,
+        )
 
     def export_soup(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
@@ -83,23 +93,30 @@ class Mesh:
         - edge_indices (n_packed_edges, 2) int array of indices into vertices,
             each row an edge
         """
-        vertices, face_indices, edge_indices, _, _ = self.export_soup_with_index_key_maps()
+        vertices, face_indices, edge_indices, _, _ = (
+            self.export_soup_with_index_key_maps()
+        )
         return vertices, face_indices, edge_indices
 
     # TODO: P4 -- complete this
     def get_3d_pos(self, v: Vertex) -> np.ndarray:
         """Given a vertex primitive, return the position coordinates"""
+        return self.vertices[v.index]
         raise NotImplementedError("TODO (P4)")
 
     # TODO: P4 -- complete this
     def vector(self, h: Halfedge) -> np.ndarray:
         """Given a halfedge primitive, return the vector"""
-        raise NotImplementedError("TODO (P4)")
+        return np.array([[self.get_3d_pos(h.vertex), self.get_3d_pos(h.tip_vertex)]])
 
     # TODO: P4 -- complete this
     def faceNormal(self, f: Face) -> np.ndarray:
         """Given a face primitive, compute the unit normal"""
-        raise NotImplementedError("TODO (P4)")
+        edge1 = self.vector(f.halfedge)
+        edge2 = self.vector(f.halfedge.next)
+        normal = np.cross(edge1, edge2)
+        normal = normal / np.linalg.norm(normal)
+        return normal
 
     # TODO: P5 (make changes in edit.py)
     def smoothMesh(self, n=5):
@@ -213,7 +230,10 @@ class Mesh:
             pcloud = ps.register_point_cloud(
                 "vertices of interest",
                 np.stack(
-                    [self.get_3d_pos(v) for (v, exists) in highlight_vertices_existornot],
+                    [
+                        self.get_3d_pos(v)
+                        for (v, exists) in highlight_vertices_existornot
+                    ],
                     axis=0,
                 ),
             )
@@ -261,7 +281,10 @@ class Mesh:
                     np.array([self.get_3d_pos(v) for v in prim.two_vertices()])
                     if isinstance(prim, Edge)
                     else np.array(
-                        [self.get_3d_pos(prim.vertex), self.get_3d_pos(prim.tip_vertex())]
+                        [
+                            self.get_3d_pos(prim.vertex),
+                            self.get_3d_pos(prim.tip_vertex()),
+                        ]
                     )
                 )
                 _nodes.append(two_vertices)
@@ -318,7 +341,10 @@ class Mesh:
                 key for key in face_keys_highlight__ if key not in self.topology.faces
             )
             ps_mesh.add_scalar_quantity(
-                "faces of interest", face_keys, defined_on="faces", datatype="categorical"
+                "faces of interest",
+                face_keys,
+                defined_on="faces",
+                datatype="categorical",
             )
             if face_keys_noexist:
                 print(
@@ -335,8 +361,14 @@ class Mesh:
             for face_id in range(len(faces) - 1):
                 f.write(
                     "f %d %d %d\n"
-                    % (faces[face_id][0] + 1, faces[face_id][1] + 1, faces[face_id][2] + 1)
+                    % (
+                        faces[face_id][0] + 1,
+                        faces[face_id][1] + 1,
+                        faces[face_id][2] + 1,
+                    )
                 )
-            f.write("f %d %d %d" % (faces[-1][0] + 1, faces[-1][1] + 1, faces[-1][2] + 1))
+            f.write(
+                "f %d %d %d" % (faces[-1][0] + 1, faces[-1][1] + 1, faces[-1][2] + 1)
+            )
             for edge in edges:
                 f.write("\ne %d %d" % (edge[0] + 1, edge[1] + 1))
