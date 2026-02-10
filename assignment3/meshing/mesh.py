@@ -114,8 +114,8 @@ class Mesh:
         """Given a face primitive, compute the unit normal"""
         edge1 = self.vector(f.halfedge)
         edge2 = self.vector(f.halfedge.next)
-        normal = np.cross(edge1, edge2)
-        normal = normal / np.linalg.norm(normal)
+        normal = np.cross(edge1, edge2) / np.linalg.norm(np.cross(edge1, edge2))
+        print(normal)
         return normal
 
     # TODO: P5 (make changes in edit.py)

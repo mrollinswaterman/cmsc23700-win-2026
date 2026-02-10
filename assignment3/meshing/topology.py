@@ -156,8 +156,8 @@ class Topology:
                     visited_edges[edge_vertices] = e
 
         # self.thorough_check()
-        # print(f"Has no manifold vertices: {self.hasNonManifoldVertices()}")
-        # print(f"Has no manifold edges: {self.hasNonManifoldEdges()}")
+        # print(f"Has non-manifold vertices: {self.hasNonManifoldVertices()}")
+        # print(f"Has non-manifold edges: {self.hasNonManifoldEdges()}")
 
     def compactify_keys(self):
         self.halfedges.compactify_keys()
@@ -204,12 +204,15 @@ class Topology:
         for v in self.vertices:
             v = self.vertices[v]
             faces: list[Face] = v.adjacentFaces()
-
+            
             for f in faces:
-                adj_list = f.adjacentFaces()
-                adj_list.append(f)
-                if adj_list not in faces:
-                    return True
+                adj = f.adjacentFaces()
+                faces_set = set(faces)
+                adj_set = set(adj)
+                common = faces_set.intersection(adj_set)
+                #print(f, common)
+                if not common: # face is adjacent to no other face
+                    return True      
         return False
 
     def hasNonManifoldEdges(self):

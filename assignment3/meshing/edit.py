@@ -34,10 +34,7 @@ class LaplacianSmoothing(MeshEdit):
     def apply(self):
         # TODO: P5 -- complete this function
         for i in range(0, self.n_iter):
-            new_positions = {
-                self.mesh.topology.vertices[v]: None
-                for v in self.mesh.topology.vertices
-            }
+            new_positions = {}
 
             for v in self.mesh.topology.vertices:
                 v = self.mesh.topology.vertices[v]
@@ -61,6 +58,9 @@ class LaplacianSmoothing(MeshEdit):
                 )
 
                 new_positions[v.index] = new_pos
+ 
+            for i in new_positions.keys():
+                self.mesh.vertices[i] = new_positions[i]
 
         # raise NotImplementedError("TODO (P5)")
 
