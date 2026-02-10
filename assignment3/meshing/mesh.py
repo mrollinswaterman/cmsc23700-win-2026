@@ -14,6 +14,11 @@ view_with_topology works; get_3d_pos doesn't depend on anything else in P2, P3, 
 For P5 and P6, make changes to edit.py, whose functions are called from here.
 """
 
+"""
+Documentation:
+    - Logic for face normals here: https://www.danenglesson.com/images/portfolio/MoA/halfedge.pdf
+"""
+
 
 class Mesh:
     def __init__(self, vertices: np.ndarray, face_indices: np.ndarray):
