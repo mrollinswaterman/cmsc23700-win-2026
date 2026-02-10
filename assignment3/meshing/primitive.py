@@ -255,7 +255,11 @@ class Face(Primitive):
         # while he.next.twin.next != self.halfedge:
         #     adj.append(he.face)
         #     he = he.next.twin
-        adj = [self.halfedge.twin.face, self.halfedge.next.twin.face, self.halfedge.prev().twin.face]
+        adj = [
+            self.halfedge.twin.face,
+            self.halfedge.next.twin.face,
+            self.halfedge.prev().twin.face,
+        ]
         return adj
 
 
@@ -291,11 +295,18 @@ class Vertex(Primitive):
     def adjacentVertices(self) -> Iterable["Vertex"]:
         # TODO: P2 -- complete this function
         """Return an iterable of adjacent vertices"""
-        adj = [self.halfedge.vertex]
-        he = self.halfedge.twin
-        while he.next != self.halfedge:
-            adj.append(he.vertex)
-            he = he.next.twin
+        # adj = [self.halfedge.vertex]
+        # he = self.halfedge.next
+        # while he.next.twin != self.halfedge:
+        #     adj.append(he.vertex)
+        #     he = he.next.twin.next
+        # return adj
+        adj = set()
+        adj.add(self.halfedge.vertex)
+        for he in self.adjacentHalfedges():
+            adj.add(he.vertex)
+            adj.add(he.tip_vertex())
+
         return adj
 
     def adjacentEdges(self) -> Iterable[Edge]:

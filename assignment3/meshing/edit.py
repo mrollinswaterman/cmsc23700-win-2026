@@ -33,36 +33,52 @@ class LaplacianSmoothing(MeshEdit):
 
     def apply(self):
         # TODO: P5 -- complete this function
-        for i in range(0, self.n_iter):
-            new_positions = {}
-
+        for _ in range(0, self.n_iter):
+            smoothed = {}
             for v in self.mesh.topology.vertices:
+                avg_pos = np.array([0.0, 0.0, 0.0])
                 v = self.mesh.topology.vertices[v]
                 neighbors = v.adjacentVertices()
 
-                n_positions = [self.mesh.get_3d_pos(v) for v in neighbors]
-                x_tot = 0
-                y_tot = 0
-                z_tot = 0
-                for item in n_positions:
-                    x_tot += item[0]
-                    y_tot += item[1]
-                    z_tot += item[2]
+                for n in neighbors:
+                    if n.index != v.index:
+                        avg_pos += self.mesh.get_3d_pos(n)
 
-                new_pos = np.array(
-                    [
-                        x_tot / len(n_positions),
-                        y_tot / len(n_positions),
-                        z_tot / len(n_positions),
-                    ]
-                )
+                avg_pos = avg_pos / (len(neighbors) - 1)
 
-                new_positions[v.index] = new_pos
- 
-            for i in new_positions.keys():
-                self.mesh.vertices[i] = new_positions[i]
+                smoothed[v.index] = avg_pos
+                # self.mesh.vertices[v.index] = avg_pos
 
-        # raise NotImplementedError("TODO (P5)")
+            for i in smoothed.keys():
+                self.mesh.vertices[i] = smoothed[i]
+
+            # new_positions = {}
+
+            # for v in self.mesh.topology.vertices:
+            #     v = self.mesh.topology.vertices[v]
+            #     neighbors = v.adjacentVertices()
+
+            #     n_positions = [self.mesh.get_3d_pos(v) for v in neighbors]
+            #     x_tot = 0
+            #     y_tot = 0
+            #     z_tot = 0
+            #     for item in n_positions:
+            #         x_tot += item[0]
+            #         y_tot += item[1]
+            #         z_tot += item[2]
+
+            #     new_pos = np.array(
+            #         [
+            #             x_tot / len(n_positions),
+            #             y_tot / len(n_positions),
+            #             z_tot / len(n_positions),
+            #         ]
+            #     )
+
+            #     new_positions[v.index] = new_pos
+
+            # for i in new_positions.keys():
+            #     self.mesh.vertices[i] = new_positions[i]
 
 
 class EdgeCollapse(MeshEdit):

@@ -9,7 +9,7 @@ if __name__ == "__main__":
         # and fills out attributes vertices and indices (triangle faces)
         soup = PolygonSoup.from_obj("bunny.obj")
 
-        #soup = PolygonSoup.from_obj("nonvmanif.obj")
+        # soup = PolygonSoup.from_obj("nonvmanif.obj")
         # Initialize your mesh object
         mesh = Mesh(soup.vertices, soup.indices)
         mesh.view_basic()
@@ -70,7 +70,10 @@ if __name__ == "__main__":
         he = mesh.topology.halfedges[0]
         # Plot all the edges extending out from the current halfedge vertex
         vertex_onering_edges = list(he.vertex.adjacentEdges())
-        mesh.view_with_topology(highlight_edges=vertex_onering_edges)
+        neighbors = mesh.topology.vertices[0].adjacentVertices()
+        mesh.view_with_topology(
+            highlight_edges=vertex_onering_edges, highlight_vertices=neighbors
+        )
 
     def example_export():
         """
@@ -92,7 +95,7 @@ if __name__ == "__main__":
         You should have finished P1, P2, P3, P4 and begun working on P5 for this.
         """
         mesh = load_bunny_and_check()
-        mesh.smoothMesh(n=5)
+        mesh.smoothMesh(n=1)
         mesh.view_basic()
         mesh.export_obj("p5.obj")
 

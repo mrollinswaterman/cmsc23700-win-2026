@@ -107,15 +107,19 @@ class Mesh:
     # TODO: P4 -- complete this
     def vector(self, h: Halfedge) -> np.ndarray:
         """Given a halfedge primitive, return the vector"""
-        return np.array([[self.get_3d_pos(h.vertex), self.get_3d_pos(h.tip_vertex())]])
+        return np.array([self.get_3d_pos(h.vertex) - self.get_3d_pos(h.tip_vertex())])
 
     # TODO: P4 -- complete this
     def faceNormal(self, f: Face) -> np.ndarray:
         """Given a face primitive, compute the unit normal"""
-        edge1 = self.vector(f.halfedge)
-        edge2 = self.vector(f.halfedge.next)
-        normal = np.cross(edge1, edge2) / np.linalg.norm(np.cross(edge1, edge2))
-        print(normal)
+        v1 = self.get_3d_pos(f.halfedge.vertex)
+        v2 = self.get_3d_pos(f.halfedge.next.vertex)
+        v3 = self.get_3d_pos(f.halfedge.prev().vertex)
+
+        normal = np.cross((v2 - v1), (v3 - v1))
+
+        normal = normal / np.linalg.norm(normal)
+
         return normal
 
     # TODO: P5 (make changes in edit.py)
