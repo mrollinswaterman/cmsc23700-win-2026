@@ -280,12 +280,6 @@ class Vertex(Primitive):
     def adjacentVertices(self) -> Iterable["Vertex"]:
         # TODO: P2 -- complete this function
         """Return an iterable of adjacent vertices"""
-        # adj = [self.halfedge.vertex]
-        # he = self.halfedge.next
-        # while he.next.twin != self.halfedge:
-        #     adj.append(he.vertex)
-        #     he = he.next.twin.next
-        # return adj
         adj = set()
         adj.add(self.halfedge.vertex)
         for he in self.adjacentHalfedges():
@@ -309,9 +303,3 @@ class Vertex(Primitive):
         """Return an iterable of adjacent faces"""
         adj = [he.face for he in self.adjacentHalfedges()]
         return set(adj)
-        # adj = [self.halfedge.face]
-        # he = self.halfedge.twin.next
-        # while he.twin.next != self.halfedge:
-        #     adj.append(he.face)
-        #     he = he.twin.next
-        return adj

@@ -101,7 +101,8 @@ class CollapsePrep:
     del_hes: list[Halfedge] = field(default_factory=list)
     del_faces: list[Face] = field(default_factory=list)
 
-    test:list = field(default_factory=list)
+    test_he:list = field(default_factory=list)
+    test_face:list = field(default_factory=list)
 
 
 # TODO: P6 -- complete this
@@ -128,20 +129,28 @@ def prepare_collapse(mesh: Mesh, e_id: int) -> CollapsePrep:
     prep.del_verts = [prep.merge_verts[0]]
     # for each edge to be delete, add its halfedge to the delete list
     prep.del_hes = [entry.halfedge for entry in prep.del_edges]
-    # for each halfedgfe in the delete list, add it's twin as well
     prep.del_hes += [entry.twin for entry in prep.del_hes]
 
-    #print(f"v1: {mesh.get_3d_pos(prep.merge_verts[0])}, v2: {mesh.get_3d_pos(prep.merge_verts[1])}")
+    # set the halfedge of each face to be prev() of the halfedge being deleted
+    # this is so a new half edge can be easily slotted in later
+    for he in prep.del_hes:
+        he.face.halfedge = he.prev()
 
-    new_vertex_pos = (mesh.get_3d_pos(prep.merge_verts[0]) + mesh.get_3d_pos(prep.merge_verts[1])) / 2
+    # find the halfedges that will be edited, ignoring those marked for deletion
 
-    #print(f"Calculated new pos: {new_vertex_pos}")
-
-    hes_to_be_modified = [i for i in prep.merge_verts[1].adjacentHalfedges() if i.vertex == prep.merge_verts[1] if i not in prep.del_hes]
-    hes_to_be_modified += [i for i in prep.merge_verts[0].adjacentHalfedges() if i.vertex == prep.merge_verts[0] if i not in prep.del_hes]
+    hes_to_be_modified = [i for i in prep.merge_verts[1].adjacentHalfedges() 
+                          if i.vertex == prep.merge_verts[1] 
+                          if i not in prep.del_hes 
+                          if i.twin not in prep.del_hes
+                        ]
+    hes_to_be_modified += [i for i in prep.merge_verts[0].adjacentHalfedges() 
+                           if i.vertex == prep.merge_verts[0] 
+                           if i not in prep.del_hes 
+                           if i.twin not in prep.del_hes
+                        ]
 
     affected_faces = [he.face for he in prep.del_hes if he.face not in prep.del_faces]
-    #affected_faces += [he.twin.face for he in prep.del_hes if he.twin.face not in prep.del_faces]
+    #print(f"AFFECTED faces {affected_faces}")
 
     new_face_hes = []
     for f in affected_faces:
@@ -156,30 +165,29 @@ def prepare_collapse(mesh: Mesh, e_id: int) -> CollapsePrep:
                 new_next = he
 
         new_face_hes.append(new_next)
-        # set the face's halfedge to be the halfedge that will need a new next so
-        # that face.halfedge.next can be indiscriminantly set later
-        if f.halfedge.next.tip_vertex() != new_next.tip_vertex():
-            f.halfedge = f.halfedge.next
-        break
 
-    assert(len(new_next) == len(affected_faces))
+    #print (new_face_hes)
+
+    # assert(len(new_face_hes) == len(affected_faces))
 
     #print(f"Old Pos: {mesh.get_3d_pos(prep.merge_verts[1])}")
-    mesh.vertices[prep.merge_verts[1].index] = new_vertex_pos
+    #mesh.vertices[prep.merge_verts[1].index] = new_vertex_pos
     #print(f"New Pos: {mesh.get_3d_pos(prep.merge_verts[1])}")
 
     #prep.del_verts = [mesh.topology.vertices[prep.merge_verts[1].index]]
     for i in hes_to_be_modified:
-        prep.repair_he_verts.append((i, prep.merge_verts[1]))
+        #if i not in prep.del_hes and i.twin not in prep.del_hes:
+            prep.repair_he_verts.append((i, prep.merge_verts[1]))
 
-    for idx, k in enumerate(affected_faces):
-        prep.repair_face_hes.append(k, new_face_hes[idx])
+    for idx, k in enumerate(new_face_hes):
+        prep.repair_face_hes.append((affected_faces[idx], k))
+        prep.test_face.append(affected_faces[idx])
+        prep.test_he.append(affected_faces[idx].halfedge)
+        prep.test_he.append(affected_faces[idx].halfedge.next)
 
-    #prep.repair_he_verts = hes_to_be_modified
-
-    #prep.test.append(mesh.topology.faces[9].halfedge)
-    
-    #assert(new_vertex_pos.all() == mesh.get_3d_pos(prep.repair_he_verts[0][1]).all())
+    prep.test_face = affected_faces
+    prep.test_he = hes_to_be_modified
+    mesh.topology.consistency_check()
 
     return prep
 
@@ -204,19 +212,58 @@ def do_collapse(prep: CollapsePrep, mesh: Mesh):
 
     # find the new vertex, average of the deleted edge vertices
     #return
+
+    #print(prep)
+
+    #prep.test_he = prep.del_hes
+    #prep.test_face = []
+    prep.test_he = []
+
+
+    #prep.test_face.append(mesh.topology.faces[7])
+    #prep.test_he.append(mesh.topology.halfedges[22])
+    #prep.test_face.append(mesh.topology.faces[2])
+
+    new_vertex_pos = (mesh.get_3d_pos(prep.merge_verts[0]) + mesh.get_3d_pos(prep.merge_verts[1])) / 2
+    for he in prep.del_hes:
+        #print(f"deleting he at index {he.index}")
+        del mesh.topology.halfedges[he.index]
+
     for f in prep.del_faces:
+        #print(f"deleting face at index {f.index}")
         del mesh.topology.faces[f.index]
-    
+
+
+    mesh.vertices[prep.merge_verts[1].index] = new_vertex_pos
+
+    for he in prep.repair_he_verts:
+        mesh.topology.halfedges[he[0].index].vertex = he[1]
+
+    for i in prep.repair_face_hes:
+        f = i[0]
+        new_he = i[1]
+        he = f.halfedge
+        if he.prev().vertex == new_he.vertex:
+            #print("twin needed!")
+            new_he = new_he.twin
+        new_he.face = f
+        new_he.next = he.prev()
+        he.next = new_he
+
     for e in prep.del_edges:
         del mesh.topology.edges[e.index]
 
     del mesh.topology.vertices[prep.del_verts[0].index]
 
-    for he in prep.del_hes:
-        del mesh.topology.halfedges[he.index]
+    assert(2 == len(mesh.topology.vertices) - len(mesh.topology.edges) + len(mesh.topology.faces))
 
-    for he in prep.repair_he_verts:
-        mesh.topology.halfedges[he[0].index].vertex = he[1]
+    for he in prep.del_hes:
+        he.next = None
+        he.face = None
+        if he.vertex not in prep.del_verts:
+            print("vertex needs adjustment")
+
+    mesh.topology.consistency_check()
 
     return
 

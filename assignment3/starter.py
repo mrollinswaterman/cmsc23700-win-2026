@@ -124,10 +124,11 @@ if __name__ == "__main__":
         simple_mesh_soup = PolygonSoup.from_obj("cube.obj")
         simple_mesh = Mesh(simple_mesh_soup.vertices, simple_mesh_soup.indices)
         simple_mesh.view_with_topology(highlight_edges=[simple_mesh.topology.edges[0]])
-        # simple_mesh.collapse([0])  # collapse edge with index 0
+        #simple_mesh.collapse([0])  # collapse edge with index 0
         prep = simple_mesh.collapse([0]).prep
         simple_mesh.view_with_topology(
-            highlight_halfedges=prep.test
+            highlight_halfedges=prep.test_he,
+            highlight_faces=prep.test_face
         )
         #simple_mesh.view_with_topology()
 
@@ -164,6 +165,6 @@ if __name__ == "__main__":
     # example_export()
     # example_smoothing()
     # example_collapse_simple()
-    example_collapse_simple_cube()
-    # example_collapses()
+    # example_collapse_simple_cube()
+    example_collapses()
     # example_collapses_with_link()
