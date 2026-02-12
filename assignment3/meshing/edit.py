@@ -131,33 +131,53 @@ def prepare_collapse(mesh: Mesh, e_id: int) -> CollapsePrep:
     # for each halfedgfe in the delete list, add it's twin as well
     prep.del_hes += [entry.twin for entry in prep.del_hes]
 
-    print(f"v1: {mesh.get_3d_pos(prep.merge_verts[0])}, v2: {mesh.get_3d_pos(prep.merge_verts[1])}")
+    #print(f"v1: {mesh.get_3d_pos(prep.merge_verts[0])}, v2: {mesh.get_3d_pos(prep.merge_verts[1])}")
 
     new_vertex_pos = (mesh.get_3d_pos(prep.merge_verts[0]) + mesh.get_3d_pos(prep.merge_verts[1])) / 2
 
-    print(f"Calculated new pos: {new_vertex_pos}")
+    #print(f"Calculated new pos: {new_vertex_pos}")
 
     hes_to_be_modified = [i for i in prep.merge_verts[1].adjacentHalfedges() if i.vertex == prep.merge_verts[1] if i not in prep.del_hes]
     hes_to_be_modified += [i for i in prep.merge_verts[0].adjacentHalfedges() if i.vertex == prep.merge_verts[0] if i not in prep.del_hes]
 
     affected_faces = [he.face for he in prep.del_hes if he.face not in prep.del_faces]
-    affected_faces += [he.twin.face for he in prep.del_hes if he.twin.face not in prep.del_faces]
+    #affected_faces += [he.twin.face for he in prep.del_hes if he.twin.face not in prep.del_faces]
 
+    new_face_hes = []
     for f in affected_faces:
-        if f.halfedge in prep.del_hes:
-            f.halfedge = f.halfedge.next
+        my_hes = [f.halfedge, f.halfedge.next, f.halfedge.prev()]
+        my_hes += [he.twin for he in my_hes]
+        verts = [he.vertex for he in my_hes]
+        new_next = None
+        for he in hes_to_be_modified:
+            # find the halfedge who's vertex is being moved and who points to one of the face's vertices
+            # this will be the halfedge that replaces the deleted halfedge for that face
+            if he not in my_hes and he.tip_vertex() in verts:
+                new_next = he
 
-    print(f"Old Pos: {mesh.get_3d_pos(prep.merge_verts[1])}")
+        new_face_hes.append(new_next)
+        # set the face's halfedge to be the halfedge that will need a new next so
+        # that face.halfedge.next can be indiscriminantly set later
+        if f.halfedge.next.tip_vertex() != new_next.tip_vertex():
+            f.halfedge = f.halfedge.next
+        break
+
+    assert(len(new_next) == len(affected_faces))
+
+    #print(f"Old Pos: {mesh.get_3d_pos(prep.merge_verts[1])}")
     mesh.vertices[prep.merge_verts[1].index] = new_vertex_pos
-    print(f"New Pos: {mesh.get_3d_pos(prep.merge_verts[1])}")
+    #print(f"New Pos: {mesh.get_3d_pos(prep.merge_verts[1])}")
 
     #prep.del_verts = [mesh.topology.vertices[prep.merge_verts[1].index]]
     for i in hes_to_be_modified:
         prep.repair_he_verts.append((i, prep.merge_verts[1]))
 
+    for idx, k in enumerate(affected_faces):
+        prep.repair_face_hes.append(k, new_face_hes[idx])
+
     #prep.repair_he_verts = hes_to_be_modified
 
-    prep.test = [affected_faces[0].halfedge]
+    #prep.test.append(mesh.topology.faces[9].halfedge)
     
     #assert(new_vertex_pos.all() == mesh.get_3d_pos(prep.repair_he_verts[0][1]).all())
 
