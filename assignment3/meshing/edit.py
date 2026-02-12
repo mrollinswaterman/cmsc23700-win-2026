@@ -52,34 +52,6 @@ class LaplacianSmoothing(MeshEdit):
             for i in smoothed.keys():
                 self.mesh.vertices[i] = smoothed[i]
 
-            # new_positions = {}
-
-            # for v in self.mesh.topology.vertices:
-            #     v = self.mesh.topology.vertices[v]
-            #     neighbors = v.adjacentVertices()
-
-            #     n_positions = [self.mesh.get_3d_pos(v) for v in neighbors]
-            #     x_tot = 0
-            #     y_tot = 0
-            #     z_tot = 0
-            #     for item in n_positions:
-            #         x_tot += item[0]
-            #         y_tot += item[1]
-            #         z_tot += item[2]
-
-            #     new_pos = np.array(
-            #         [
-            #             x_tot / len(n_positions),
-            #             y_tot / len(n_positions),
-            #             z_tot / len(n_positions),
-            #         ]
-            #     )
-
-            #     new_positions[v.index] = new_pos
-
-            # for i in new_positions.keys():
-            #     self.mesh.vertices[i] = new_positions[i]
-
 
 class EdgeCollapse(MeshEdit):
     def __init__(self, mesh: Mesh, e_id: int):
@@ -129,6 +101,8 @@ class CollapsePrep:
     del_hes: list[Halfedge] = field(default_factory=list)
     del_faces: list[Face] = field(default_factory=list)
 
+    test:list = field(default_factory=list)
+
 
 # TODO: P6 -- complete this
 def prepare_collapse(mesh: Mesh, e_id: int) -> CollapsePrep:
@@ -141,9 +115,53 @@ def prepare_collapse(mesh: Mesh, e_id: int) -> CollapsePrep:
     """
     topology = mesh.topology
     e = topology.edges[e_id]
-    # TODO write your code here, replace this raise, and return a `CollapsePrep`
-    raise NotImplementedError("TODO (P6)")
 
+    prep = CollapsePrep(e.two_vertices())
+
+    #prep.merge_verts = 
+
+    # get incident faces via the edge's halfedge and its twin
+    prep.del_faces = [e.halfedge.face, e.halfedge.twin.face]
+    # get one edge from each incident face, also via halfedge and twin
+    prep.del_edges = [e, e.halfedge.prev().edge, e.halfedge.twin.next.edge]
+    # add one vertex to del list
+    prep.del_verts = [prep.merge_verts[0]]
+    # for each edge to be delete, add its halfedge to the delete list
+    prep.del_hes = [entry.halfedge for entry in prep.del_edges]
+    # for each halfedgfe in the delete list, add it's twin as well
+    prep.del_hes += [entry.twin for entry in prep.del_hes]
+
+    print(f"v1: {mesh.get_3d_pos(prep.merge_verts[0])}, v2: {mesh.get_3d_pos(prep.merge_verts[1])}")
+
+    new_vertex_pos = (mesh.get_3d_pos(prep.merge_verts[0]) + mesh.get_3d_pos(prep.merge_verts[1])) / 2
+
+    print(f"Calculated new pos: {new_vertex_pos}")
+
+    hes_to_be_modified = [i for i in prep.merge_verts[1].adjacentHalfedges() if i.vertex == prep.merge_verts[1] if i not in prep.del_hes]
+    hes_to_be_modified += [i for i in prep.merge_verts[0].adjacentHalfedges() if i.vertex == prep.merge_verts[0] if i not in prep.del_hes]
+
+    affected_faces = [he.face for he in prep.del_hes if he.face not in prep.del_faces]
+    affected_faces += [he.twin.face for he in prep.del_hes if he.twin.face not in prep.del_faces]
+
+    for f in affected_faces:
+        if f.halfedge in prep.del_hes:
+            f.halfedge = f.halfedge.next
+
+    print(f"Old Pos: {mesh.get_3d_pos(prep.merge_verts[1])}")
+    mesh.vertices[prep.merge_verts[1].index] = new_vertex_pos
+    print(f"New Pos: {mesh.get_3d_pos(prep.merge_verts[1])}")
+
+    #prep.del_verts = [mesh.topology.vertices[prep.merge_verts[1].index]]
+    for i in hes_to_be_modified:
+        prep.repair_he_verts.append((i, prep.merge_verts[1]))
+
+    #prep.repair_he_verts = hes_to_be_modified
+
+    prep.test = [affected_faces[0].halfedge]
+    
+    #assert(new_vertex_pos.all() == mesh.get_3d_pos(prep.repair_he_verts[0][1]).all())
+
+    return prep
 
 # TODO: P6 -- complete this
 def do_collapse(prep: CollapsePrep, mesh: Mesh):
@@ -163,7 +181,24 @@ def do_collapse(prep: CollapsePrep, mesh: Mesh):
     and similarly for other primitive types.
     """
     # TODO write your code here and replace this raise
-    raise NotImplementedError("TODO (P6)")
+
+    # find the new vertex, average of the deleted edge vertices
+    #return
+    for f in prep.del_faces:
+        del mesh.topology.faces[f.index]
+    
+    for e in prep.del_edges:
+        del mesh.topology.edges[e.index]
+
+    del mesh.topology.vertices[prep.del_verts[0].index]
+
+    for he in prep.del_hes:
+        del mesh.topology.halfedges[he.index]
+
+    for he in prep.repair_he_verts:
+        mesh.topology.halfedges[he[0].index].vertex = he[1]
+
+    return
 
 
 class EdgeCollapseWithLink(MeshEdit):

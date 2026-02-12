@@ -230,31 +230,16 @@ class Face(Primitive):
             adj.append(he.vertex)
             he = he.next
         return adj
-        # raise NotImplementedError("TODO (P2)")
 
     def adjacentEdges(self) -> Iterable[Edge]:
         # TODO: P2 -- complete this function
         """Return an iterable of adjacent edges"""
-        # adj = [self.halfedge.edge, self.halfedge.prev().edge, self.halfedge.next.edge]
-        # adj.append(self.halfedge.twin)
-        # he.append(self.halfedge.twin)
-        # he = self.halfedge.next
-        # while he != self.halfedge:
-        #     adj.append(he.edge)
-        #     he = he.next
 
         return [self.halfedge.edge, self.halfedge.prev().edge, self.halfedge.next.edge]
-
-        raise NotImplementedError("TODO (P2)")
 
     def adjacentFaces(self) -> Iterable["Face"]:
         # TODO: P2 -- complete this function
         """Return an iterable of adjacent faces"""
-        # adj = [self.halfedge.face]
-        # he = self.halfedge.twin
-        # while he.next.twin.next != self.halfedge:
-        #     adj.append(he.face)
-        #     he = he.next.twin
         adj = [
             self.halfedge.twin.face,
             self.halfedge.next.twin.face,

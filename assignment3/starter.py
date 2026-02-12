@@ -107,7 +107,13 @@ if __name__ == "__main__":
         simple_mesh_soup = PolygonSoup.from_obj("single_edge_collapse.obj")
         simple_mesh = Mesh(simple_mesh_soup.vertices, simple_mesh_soup.indices)
         simple_mesh.view_with_topology(highlight_edges=[simple_mesh.topology.edges[0]])
+        #prep = simple_mesh.collapse([0]).prep
         simple_mesh.collapse([0])  # collapse edge with index 0
+        # simple_mesh.view_with_topology(
+        #     highlight_edges=prep.del_edges,
+        #     highlight_faces=prep.del_faces,
+        #     highlight_halfedges=prep.del_hes,
+        # )
         simple_mesh.view_with_topology()
 
     def example_collapse_simple_cube():
@@ -118,8 +124,12 @@ if __name__ == "__main__":
         simple_mesh_soup = PolygonSoup.from_obj("cube.obj")
         simple_mesh = Mesh(simple_mesh_soup.vertices, simple_mesh_soup.indices)
         simple_mesh.view_with_topology(highlight_edges=[simple_mesh.topology.edges[0]])
-        simple_mesh.collapse([0])  # collapse edge with index 0
-        simple_mesh.view_with_topology()
+        # simple_mesh.collapse([0])  # collapse edge with index 0
+        prep = simple_mesh.collapse([0]).prep
+        simple_mesh.view_with_topology(
+            highlight_halfedges=prep.test
+        )
+        #simple_mesh.view_with_topology()
 
     def example_collapses():
         """
@@ -152,8 +162,8 @@ if __name__ == "__main__":
     # example_halfedge0()
     # example_onering()
     # example_export()
-    example_smoothing()
+    # example_smoothing()
     # example_collapse_simple()
-    # example_collapse_simple_cube()
+    example_collapse_simple_cube()
     # example_collapses()
     # example_collapses_with_link()

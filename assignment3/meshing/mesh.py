@@ -139,9 +139,12 @@ class Mesh:
         """Edge collapse without link condition check"""
         from . import EdgeCollapse
 
+        return EdgeCollapse(self, edge_ids[0])
+
         for e_id in edge_ids:
             edt = EdgeCollapse(self, e_id)
             edt.apply()
+            return edt
 
     # TODO: Extra credit (make changes in edit.py)
     def collapse_with_link_condition(self, edge_ids: Sequence[int]):
