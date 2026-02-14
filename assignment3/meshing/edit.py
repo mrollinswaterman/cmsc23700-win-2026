@@ -101,8 +101,11 @@ class CollapsePrep:
     del_hes: list[Halfedge] = field(default_factory=list)
     del_faces: list[Face] = field(default_factory=list)
 
-    test_he:list = field(default_factory=list)
-    test_face:list = field(default_factory=list)
+    test_he: list = field(default_factory=list)
+    test_face: list = field(default_factory=list)
+    test_v: list = field(default_factory=list)
+
+    flag: bool = False
 
 
 # TODO: P6 -- complete this
@@ -119,7 +122,10 @@ def prepare_collapse(mesh: Mesh, e_id: int) -> CollapsePrep:
 
     prep = CollapsePrep(e.two_vertices())
 
-    #prep.merge_verts = 
+    if e_id == 2477:
+        prep.flag = True
+
+    # prep.merge_verts =
 
     # get incident faces via the edge's halfedge and its twin
     prep.del_faces = [e.halfedge.face, e.halfedge.twin.face]
@@ -138,19 +144,23 @@ def prepare_collapse(mesh: Mesh, e_id: int) -> CollapsePrep:
 
     # find the halfedges that will be edited, ignoring those marked for deletion
 
-    hes_to_be_modified = [i for i in prep.merge_verts[1].adjacentHalfedges() 
-                          if i.vertex == prep.merge_verts[1] 
-                          if i not in prep.del_hes 
-                          if i.twin not in prep.del_hes
-                        ]
-    hes_to_be_modified += [i for i in prep.merge_verts[0].adjacentHalfedges() 
-                           if i.vertex == prep.merge_verts[0] 
-                           if i not in prep.del_hes 
-                           if i.twin not in prep.del_hes
-                        ]
+    hes_to_be_modified = [
+        i
+        for i in prep.merge_verts[1].adjacentHalfedges()
+        if i.vertex == prep.merge_verts[1]
+        if i not in prep.del_hes
+        if i.twin not in prep.del_hes
+    ]
+    hes_to_be_modified += [
+        i
+        for i in prep.merge_verts[0].adjacentHalfedges()
+        if i.vertex == prep.merge_verts[0]
+        if i not in prep.del_hes
+        if i.twin not in prep.del_hes
+    ]
 
+    # get faces with a halfedge being deleted
     affected_faces = [he.face for he in prep.del_hes if he.face not in prep.del_faces]
-    #print(f"AFFECTED faces {affected_faces}")
 
     new_face_hes = []
     for f in affected_faces:
@@ -164,20 +174,27 @@ def prepare_collapse(mesh: Mesh, e_id: int) -> CollapsePrep:
             if he not in my_hes and he.tip_vertex() in verts:
                 new_next = he
 
+        if not new_next:
+            continue
+            print(verts)
+            for he in hes_to_be_modified:
+                print(he.tip_vertex(), he.vertex)
+            raise Exception
+
         new_face_hes.append(new_next)
 
-    #print (new_face_hes)
+    # print (new_face_hes)
 
     # assert(len(new_face_hes) == len(affected_faces))
 
-    #print(f"Old Pos: {mesh.get_3d_pos(prep.merge_verts[1])}")
-    #mesh.vertices[prep.merge_verts[1].index] = new_vertex_pos
-    #print(f"New Pos: {mesh.get_3d_pos(prep.merge_verts[1])}")
+    # print(f"Old Pos: {mesh.get_3d_pos(prep.merge_verts[1])}")
+    # mesh.vertices[prep.merge_verts[1].index] = new_vertex_pos
+    # print(f"New Pos: {mesh.get_3d_pos(prep.merge_verts[1])}")
 
-    #prep.del_verts = [mesh.topology.vertices[prep.merge_verts[1].index]]
+    # prep.del_verts = [mesh.topology.vertices[prep.merge_verts[1].index]]
     for i in hes_to_be_modified:
-        #if i not in prep.del_hes and i.twin not in prep.del_hes:
-            prep.repair_he_verts.append((i, prep.merge_verts[1]))
+        # if i not in prep.del_hes and i.twin not in prep.del_hes:
+        prep.repair_he_verts.append((i, prep.merge_verts[1]))
 
     for idx, k in enumerate(new_face_hes):
         prep.repair_face_hes.append((affected_faces[idx], k))
@@ -190,6 +207,7 @@ def prepare_collapse(mesh: Mesh, e_id: int) -> CollapsePrep:
     mesh.topology.consistency_check()
 
     return prep
+
 
 # TODO: P6 -- complete this
 def do_collapse(prep: CollapsePrep, mesh: Mesh):
@@ -210,60 +228,79 @@ def do_collapse(prep: CollapsePrep, mesh: Mesh):
     """
     # TODO write your code here and replace this raise
 
-    # find the new vertex, average of the deleted edge vertices
-    #return
+    # print(prep)
 
-    #print(prep)
-
-    #prep.test_he = prep.del_hes
-    #prep.test_face = []
     prep.test_he = []
 
+    verts = [he.vertex for he in prep.del_hes if he.vertex not in prep.del_verts]
 
-    #prep.test_face.append(mesh.topology.faces[7])
-    #prep.test_he.append(mesh.topology.halfedges[22])
-    #prep.test_face.append(mesh.topology.faces[2])
-
-    new_vertex_pos = (mesh.get_3d_pos(prep.merge_verts[0]) + mesh.get_3d_pos(prep.merge_verts[1])) / 2
+    new_vertex_pos = (
+        mesh.get_3d_pos(prep.merge_verts[0]) + mesh.get_3d_pos(prep.merge_verts[1])
+    ) / 2
     for he in prep.del_hes:
-        #print(f"deleting he at index {he.index}")
+        # print(f"deleting he at index {he.index}")
         del mesh.topology.halfedges[he.index]
 
     for f in prep.del_faces:
-        #print(f"deleting face at index {f.index}")
+        # print(f"deleting face at index {f.index}")
         del mesh.topology.faces[f.index]
-
 
     mesh.vertices[prep.merge_verts[1].index] = new_vertex_pos
 
     for he in prep.repair_he_verts:
         mesh.topology.halfedges[he[0].index].vertex = he[1]
 
+        # make sure to reset the halfedge of the vertex that was kept and moved from the deleted edge
+        mesh.topology.vertices[prep.merge_verts[1].index].halfedge = he[0]
+
+    # if prep.flag:
+    #     print(prep)
+    #     prep.test_he = [ob[0] for ob in prep.repair_he_verts]
+    #     prep.test_v = verts
+    #     return False
+
     for i in prep.repair_face_hes:
         f = i[0]
         new_he = i[1]
+        if not new_he:
+            print(prep)
+            print(f)
+            continue
         he = f.halfedge
         if he.prev().vertex == new_he.vertex:
-            #print("twin needed!")
+            # print("twin needed!")
             new_he = new_he.twin
         new_he.face = f
         new_he.next = he.prev()
         he.next = new_he
+        he.prev().next = he
 
     for e in prep.del_edges:
         del mesh.topology.edges[e.index]
 
     del mesh.topology.vertices[prep.del_verts[0].index]
 
-    assert(2 == len(mesh.topology.vertices) - len(mesh.topology.edges) + len(mesh.topology.faces))
+    assert 2 == len(mesh.topology.vertices) - len(mesh.topology.edges) + len(
+        mesh.topology.faces
+    )
+
+    for v in verts:
+        if v.halfedge in prep.del_hes:
+            v.halfedge = v.halfedge.prev()
 
     for he in prep.del_hes:
         he.next = None
         he.face = None
-        if he.vertex not in prep.del_verts:
-            print("vertex needs adjustment")
+        pass
+        # print("vertex needs adjustment")
 
-    mesh.topology.consistency_check()
+    if not mesh.topology.consistency_check():
+        print(mesh.topology.vertices[0].adjacentVertices())
+        prep.test_he = [mesh.topology.vertices[0].adjacentHalfedges()]
+        prep.test_v = [prep.merge_verts[1], mesh.topology.vertices[0]]
+        prep.test_face = [mesh.topology.faces[1060]]
+        return False
+    return True
 
     return
 

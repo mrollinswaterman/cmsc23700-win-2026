@@ -107,7 +107,7 @@ if __name__ == "__main__":
         simple_mesh_soup = PolygonSoup.from_obj("single_edge_collapse.obj")
         simple_mesh = Mesh(simple_mesh_soup.vertices, simple_mesh_soup.indices)
         simple_mesh.view_with_topology(highlight_edges=[simple_mesh.topology.edges[0]])
-        #prep = simple_mesh.collapse([0]).prep
+        # prep = simple_mesh.collapse([0]).prep
         simple_mesh.collapse([0])  # collapse edge with index 0
         # simple_mesh.view_with_topology(
         #     highlight_edges=prep.del_edges,
@@ -123,14 +123,18 @@ if __name__ == "__main__":
         """
         simple_mesh_soup = PolygonSoup.from_obj("cube.obj")
         simple_mesh = Mesh(simple_mesh_soup.vertices, simple_mesh_soup.indices)
-        simple_mesh.view_with_topology(highlight_edges=[simple_mesh.topology.edges[0]])
-        #simple_mesh.collapse([0])  # collapse edge with index 0
-        prep = simple_mesh.collapse([0]).prep
         simple_mesh.view_with_topology(
-            highlight_halfedges=prep.test_he,
-            highlight_faces=prep.test_face
+            highlight_edges=[
+                simple_mesh.topology.edges[0],
+                simple_mesh.topology.edges[6],
+            ]
         )
-        #simple_mesh.view_with_topology()
+        simple_mesh.collapse([0, 6])  # collapse edge with index 0
+        # prep = simple_mesh.collapse([0, 10]).prep
+        # simple_mesh.view_with_topology(
+        #     highlight_halfedges=prep.test_he, highlight_faces=prep.test_face
+        # )
+        simple_mesh.view_with_topology()
 
     def example_collapses():
         """
@@ -142,6 +146,29 @@ if __name__ == "__main__":
         mesh = load_bunny_and_check()
         mesh.collapse(edge_ids)
         mesh.view_with_topology()
+        # prep = mesh.collapse([edge_ids[0]]).prep
+        # mesh.view_with_topology(highlight_halfedges=prep.test_he)
+
+        # for e in edge_ids:
+        #     # hhe = [mesh.topology.edges[e].halfedge.twin.next.twin.next]
+        #     hhe += mesh.topology.edges[e].halfedge.vertex.adjacentHalfedges()
+
+        #     # hhe = [mesh.topology.edges[e].halfedge.vertex.halfedge]
+        #     mesh.view_with_topology(
+        #         highlight_edges=[mesh.topology.edges[e]],
+        #         highlight_halfedges=hhe,
+        #         highlight_vertices=[mesh.topology.edges[e].halfedge.vertex],
+        #     )
+        #     prep = mesh.collapse([e])
+        #     if prep != True:
+        #         mesh.view_with_topology(
+        #             highlight_halfedges=prep.test_he,
+        #             highlight_faces=prep.test_face,
+        #             highlight_vertices=prep.test_v,
+        #         )
+        #     else:
+        #         mesh.view_with_topology()
+
         mesh.export_obj("p6.obj")
 
     def example_collapses_with_link():
