@@ -143,6 +143,9 @@ class Mesh:
 
         for e_id in edge_ids:
             edt = EdgeCollapse(self, e_id)
+            if e_id == 172:
+                self.view_with_topology(highlight_edges=[edt.prep.edge])
+                return None
             if not edt.apply():
                 return edt.prep
         return True

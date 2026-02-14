@@ -106,6 +106,7 @@ class CollapsePrep:
     test_v: list = field(default_factory=list)
 
     flag: bool = False
+    edge: Edge = None
 
 
 # TODO: P6 -- complete this
@@ -122,8 +123,7 @@ def prepare_collapse(mesh: Mesh, e_id: int) -> CollapsePrep:
 
     prep = CollapsePrep(e.two_vertices())
 
-    if e_id == 2477:
-        prep.flag = True
+    prep.edge = e
 
     # prep.merge_verts =
 
@@ -253,11 +253,11 @@ def do_collapse(prep: CollapsePrep, mesh: Mesh):
         # make sure to reset the halfedge of the vertex that was kept and moved from the deleted edge
         mesh.topology.vertices[prep.merge_verts[1].index].halfedge = he[0]
 
-    # if prep.flag:
-    #     print(prep)
-    #     prep.test_he = [ob[0] for ob in prep.repair_he_verts]
-    #     prep.test_v = verts
-    #     return False
+    if prep.edge == 172:
+        #print(prep)
+        #prep.test_he = [ob[0] for ob in prep.repair_he_verts]
+        #prep.test_v = verts
+        return False
 
     for i in prep.repair_face_hes:
         f = i[0]
@@ -289,18 +289,22 @@ def do_collapse(prep: CollapsePrep, mesh: Mesh):
             v.halfedge = v.halfedge.prev()
 
     for he in prep.del_hes:
-        he.next = None
-        he.face = None
+        #he.next = None
+        #he.face = None
         pass
         # print("vertex needs adjustment")
 
     if not mesh.topology.consistency_check():
-        print(mesh.topology.vertices[0].adjacentVertices())
-        prep.test_he = [mesh.topology.vertices[0].adjacentHalfedges()]
-        prep.test_v = [prep.merge_verts[1], mesh.topology.vertices[0]]
-        prep.test_face = [mesh.topology.faces[1060]]
+        print(prep.edge)
+        for he in mesh.topology.halfedges.values():
+            if he.next not in mesh.topology.halfedges.values():
+                print(he, he.next)
+
+        print("consistency check failed!")
         return False
-    return True
+    else:
+        #print("passed consistency check")
+        return True
 
     return
 
