@@ -183,15 +183,6 @@ def prepare_collapse(mesh: Mesh, e_id: int) -> CollapsePrep:
 
         new_face_hes.append(new_next)
 
-    # print (new_face_hes)
-
-    # assert(len(new_face_hes) == len(affected_faces))
-
-    # print(f"Old Pos: {mesh.get_3d_pos(prep.merge_verts[1])}")
-    # mesh.vertices[prep.merge_verts[1].index] = new_vertex_pos
-    # print(f"New Pos: {mesh.get_3d_pos(prep.merge_verts[1])}")
-
-    # prep.del_verts = [mesh.topology.vertices[prep.merge_verts[1].index]]
     for i in hes_to_be_modified:
         # if i not in prep.del_hes and i.twin not in prep.del_hes:
         prep.repair_he_verts.append((i, prep.merge_verts[1]))
@@ -228,8 +219,6 @@ def do_collapse(prep: CollapsePrep, mesh: Mesh):
     """
     # TODO write your code here and replace this raise
 
-    # print(prep)
-
     prep.test_he = []
 
     verts = [he.vertex for he in prep.del_hes if he.vertex not in prep.del_verts]
@@ -237,12 +226,24 @@ def do_collapse(prep: CollapsePrep, mesh: Mesh):
     new_vertex_pos = (
         mesh.get_3d_pos(prep.merge_verts[0]) + mesh.get_3d_pos(prep.merge_verts[1])
     ) / 2
+
+    for e in prep.del_edges:
+        del mesh.topology.edges[e.index]
+
+    del mesh.topology.vertices[prep.del_verts[0].index]
+
+    if prep.edge.index == 1901:
+        mesh.view_with_topology(highlight_faces=prep.del_faces)
+        #
+
     for he in prep.del_hes:
         # print(f"deleting he at index {he.index}")
         del mesh.topology.halfedges[he.index]
 
     for f in prep.del_faces:
         # print(f"deleting face at index {f.index}")
+        if prep.edge.index == 1901:
+            print(f)
         del mesh.topology.faces[f.index]
 
     mesh.vertices[prep.merge_verts[1].index] = new_vertex_pos
@@ -253,14 +254,16 @@ def do_collapse(prep: CollapsePrep, mesh: Mesh):
         # make sure to reset the halfedge of the vertex that was kept and moved from the deleted edge
         mesh.topology.vertices[prep.merge_verts[1].index].halfedge = he[0]
 
-    if prep.edge == 172:
-        #print(prep)
-        #prep.test_he = [ob[0] for ob in prep.repair_he_verts]
-        #prep.test_v = verts
-        return False
+    if prep.edge.index == 1901:
+        print(prep)
+        mesh.view_with_topology(highlight_halfedges=mesh.topology.vertices[prep.merge_verts[1].index].adjacentHalfedges())
+        #return False
 
     for i in prep.repair_face_hes:
         f = i[0]
+        if f not in mesh.topology.faces.items():
+            print(f"face {f} not found in mesh topology!")
+            continue
         new_he = i[1]
         if not new_he:
             print(prep)
@@ -275,10 +278,21 @@ def do_collapse(prep: CollapsePrep, mesh: Mesh):
         he.next = new_he
         he.prev().next = he
 
-    for e in prep.del_edges:
-        del mesh.topology.edges[e.index]
+    if prep.edge.index == 1901:
+        #print(prep)
+        mesh.view_with_topology(highlight_halfedges=mesh.topology.vertices[prep.merge_verts[1].index].adjacentHalfedges())
+        return False
 
-    del mesh.topology.vertices[prep.del_verts[0].index]
+    if prep.edge.index == 172:
+        print(prep)
+        mesh.view_with_topology(
+            highlight_faces=[mesh.topology.faces[599]],
+        )
+        print("target edge found, ending early...")
+        
+        return False
+
+    
 
     assert 2 == len(mesh.topology.vertices) - len(mesh.topology.edges) + len(
         mesh.topology.faces
