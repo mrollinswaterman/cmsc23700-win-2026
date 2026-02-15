@@ -17,7 +17,6 @@ Smoothing Logic from here:
 """
 
 
-
 class MeshEdit:
     """
     Abstract interface for a mesh edit. The edit is prepared upon init
@@ -151,9 +150,9 @@ def prepare_collapse(mesh: Mesh, e_id: int) -> CollapsePrep:
     prep.del_hes += [entry.twin for entry in prep.del_hes]
 
     # check we are deleting the right amount of objects
-    assert(len(prep.del_hes) == 6)
-    assert(len(prep.del_faces) == 2)
-    assert(len(prep.del_edges) == 3)
+    assert len(prep.del_hes) == 6
+    assert len(prep.del_faces) == 2
+    assert len(prep.del_edges) == 3
 
     # set the halfedge of each face to be the prev() of the halfedge being deleted
     # this is so a new half edge can be easily slotted in later
@@ -245,11 +244,12 @@ def do_collapse(prep: CollapsePrep, mesh: Mesh):
     ) / 2
 
     if prep.flag:
-        mesh.view_with_topology(highlight_halfedges=prep.test_he, 
-                                highlight_vertices=prep.merge_verts, 
-                                highlight_faces=prep.del_faces,
-                                highlight_edges=[prep.edge]
-                                )
+        mesh.view_with_topology(
+            highlight_halfedges=prep.test_he,
+            highlight_vertices=prep.merge_verts,
+            highlight_faces=prep.del_faces,
+            highlight_edges=[prep.edge],
+        )
 
     # move the position of the vertex being kept to it's new place
     mesh.vertices[prep.merge_verts[1].index] = new_vertex_pos
@@ -257,7 +257,6 @@ def do_collapse(prep: CollapsePrep, mesh: Mesh):
     # for every halfedge that was attached to the deleted vertex, move it's vertex to the new average vertex
     for he in prep.repair_he_verts:
         mesh.topology.halfedges[he[0].index].vertex = he[1]
-
 
     for i in prep.repair_face_hes:
         f = i[0]
@@ -292,7 +291,9 @@ def do_collapse(prep: CollapsePrep, mesh: Mesh):
             mesh.view_with_topology(highlight_halfedges=f.adjacentHalfedges())
 
     if prep.flag:
-        mesh.view_with_topology(highlight_halfedges=prep.test_he, highlight_vertices=prep.merge_verts)
+        mesh.view_with_topology(
+            highlight_halfedges=prep.test_he, highlight_vertices=prep.merge_verts
+        )
 
     for e in prep.del_edges:
         del mesh.topology.edges[e.index]
@@ -302,54 +303,54 @@ def do_collapse(prep: CollapsePrep, mesh: Mesh):
         # attach them to the undeleted vertex
         if he not in prep.del_hes and he.vertex == prep.del_verts[0]:
             he.vertex = prep.merge_verts[1]
-            #raise Exception(f"deleted vertex still referenced by halfedge {he}")
+            # raise Exception(f"deleted vertex still referenced by halfedge {he}")
 
     del mesh.topology.vertices[prep.del_verts[0].index]
 
     for f in prep.del_faces:
         # print(f"deleting face at index {f.index}")
         hes = [f.halfedge, f.halfedge.next, f.halfedge.prev()]
-        # check all the face's halfedges to ensure none of them still reference the 
+        # check all the face's halfedges to ensure none of them still reference the
         # face before you delete it.
         # if they do, try and fix that using the halfegde's neighbors
         for he in hes:
             if he.face == f:
-                #print(f"deleted face still referenced by halfedge {he}. Fixing...")
+                # print(f"deleted face still referenced by halfedge {he}. Fixing...")
                 if he.next.face != f:
                     he.face = he.next.face
                 elif he.prev().face != f:
                     he.face = he.prev().face
         del mesh.topology.faces[f.index]
-            
+
     for he in prep.del_hes:
         # print(f"deleting he at index {he.index}")
         # if we find that a valid halfedge still refernces a deleted halfegde
         # try to repair it using it's associated face
         if he.prev().next == he:
             for i in prep.repair_face_hes:
-                f = i[0] 
+                f = i[0]
                 if he.prev().face == f:
                     he.prev().next = i[1]
                     break
-            
+
             if he.prev().next == he:
                 he.prev().next = he.next
         # this should never be true because the above repair resolves it, used for debugging purposes
         if he.next.prev() == he and he.next not in prep.del_hes:
-            #print(prep.edge)
-            #mesh.view_with_topology(highlight_halfedges=[he, he.next.twin, he.twin.next])
-            #raise Exception("deleted halfedge still connected to next")
+            # print(prep.edge)
+            # mesh.view_with_topology(highlight_halfedges=[he, he.next.twin, he.twin.next])
+            # raise Exception("deleted halfedge still connected to next")
             pass
-        
+
         # should also never be true since edges are deleted along with their halfedges
         # debugging purposes
         if he.edge in mesh.topology.edges.values():
-            raise Exception('deleted he still has a valid edge')
-        
+            raise Exception("deleted he still has a valid edge")
+
         # if we find that the halfedge's vertex still references it before deletion:
         # to to fix that by picking a different halfedge for the vertex to reference
         if he.vertex.halfedge == he and he.vertex in mesh.topology.vertices.values():
-            #print("deleted halfedge still referenced by a vertex! Fixing...")
+            # print("deleted halfedge still referenced by a vertex! Fixing...")
             if he.prev() not in prep.del_hes:
                 he.vertex.halfedge = he.prev().twin
             else:
@@ -358,9 +359,9 @@ def do_collapse(prep: CollapsePrep, mesh: Mesh):
                     if candidate != he:
                         he.vertex.halfedge = candidate
                         break
-        
+
         he.face = None
-        #he.next = None
+        # he.next = None
         del mesh.topology.halfedges[he.index]
 
     # check for no holes
@@ -372,8 +373,7 @@ def do_collapse(prep: CollapsePrep, mesh: Mesh):
         print("consistency check failed!")
         return False
 
-    
-    #print("all good!")
+    # print("all good!")
     return
 
 

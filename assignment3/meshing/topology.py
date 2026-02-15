@@ -217,12 +217,17 @@ class Topology:
 
     def hasNonManifoldEdges(self):
         # TODO: P3 -- return True if any non-manifold edges found, False otherwise
+
+        # make a list of all adjacent edges for all faces
         adj_edges = []
         for f in self.faces:
             f = self.faces[f]
             adj_edges.extend(f.adjacentEdges())
 
+        # check for duplicates in the super-list of adajcent edges
         check = dict((x, adj_edges.count(x)) for x in set(adj_edges))
+        # if any edge is duplicated less than once, or more than twice, then that edge was adjacent to
+        # the wrong number of faces and is non manifold
         for i in check.values():
             if i != 1 and i != 2:
                 return True

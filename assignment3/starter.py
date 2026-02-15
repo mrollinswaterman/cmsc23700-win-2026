@@ -185,6 +185,17 @@ if __name__ == "__main__":
         mesh.view_with_topology()
         mesh.export_obj("ec.obj")
 
+    def custom():
+        soup = PolygonSoup.from_obj("meshing/p7.obj")
+        mesh = Mesh(soup.vertices, soup.indices)
+
+        mesh.smoothMesh(10)
+
+        mesh.collapse([10, 20, 30])
+        mesh.view_with_topology()
+
+        mesh.export_obj("meshing/custom_p7.obj")
+
     ## run one of these functions at a time per script run
     # load_bunny_and_check()
     # example_halfedge0()
@@ -193,5 +204,6 @@ if __name__ == "__main__":
     # example_smoothing()
     # example_collapse_simple()
     # example_collapse_simple_cube()
-    example_collapses()
+    # example_collapses()
     # example_collapses_with_link()
+    custom()

@@ -214,22 +214,24 @@ class Face(Primitive):
     def adjacentHalfedges(self) -> Iterable[Halfedge]:
         # TODO: P2 -- complete this function
         """Return an iterable of adjacent halfedges"""
-        adj = [self.halfedge]
-        he = self.halfedge.next
-        while he != self.halfedge:
-            adj.append(he)
-            he = he.next
-        return adj
+        # adj = [self.halfedge]
+        # he = self.halfedge.next
+        # while he != self.halfedge:
+        #     adj.append(he)
+        #     he = he.next
+        # return adj
+        return [self.halfedge, self.halfedge.next, self.halfedge.prev()]
 
     def adjacentVertices(self) -> Iterable["Vertex"]:
         # TODO: P2 -- complete this function
         """Return an iterable of adjacent vertices"""
-        adj = [self.halfedge.vertex]
-        he = self.halfedge.next
-        while he != self.halfedge:
-            adj.append(he.vertex)
-            he = he.next
-        return adj
+        # adj = [self.halfedge.vertex]
+        # he = self.halfedge.next
+        # while he != self.halfedge:
+        #     adj.append(he.vertex)
+        #     he = he.next
+        # return adj
+        return [he.vertex for he in self.adjacentHalfedges()]
 
     def adjacentEdges(self) -> Iterable[Edge]:
         # TODO: P2 -- complete this function
