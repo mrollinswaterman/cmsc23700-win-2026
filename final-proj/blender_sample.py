@@ -198,7 +198,9 @@ def select_obj(obj):
     bpy.context.view_layer.objects.active = obj
 
 
-def setup_animation_keyframes(object_to_animate, locations, rotations, scales, n_frames):
+def setup_animation_keyframes(
+    object_to_animate, locations, rotations, scales, n_frames
+):
     """
     insert keyframes along path
     """
@@ -233,7 +235,9 @@ def setup_animation_keyframes(object_to_animate, locations, rotations, scales, n
 # ---------- Load objs ---------- #
 # set obj file to spot.obj in the meshes directory
 # we've also included some other .obj files, but feel free to download or create your own
-obj_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "meshes", "spot.obj")
+obj_file = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "meshes", "spot.obj"
+)
 print(f"obj file: {obj_file}")
 
 
@@ -268,7 +272,7 @@ debug = False
 
 # ---------- Animation ---------- #
 # animate flag
-animate = False
+animate = True
 
 # hard code locations
 n_frames = 20
