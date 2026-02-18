@@ -116,7 +116,7 @@ class Scene:
 
     def setup_render_engine(self):
         # CPU is faster on most laptops, but if you have a GPU, change this to GPU
-        bpy.context.scene.cycles.device = "CPU"
+        bpy.context.scene.cycles.device = "GPU"
 
         # we default to 10 samples at 50% resolution for faster rendering
         # feel free to increase this for higher quality, though it will take much longer per frame
@@ -275,7 +275,7 @@ debug = False
 animate = True
 
 # hard code locations
-n_frames = 20
+n_frames = 30
 
 # example animations (moving either cam or mesh)
 # example camera animation
@@ -285,6 +285,18 @@ n_frames = 20
 # example mesh animation
 # this uses np.linspace to generate linear animations
 # but you can replace this with your splines!
+# def get_rotations():
+#     from interpolation import BSpline
+
+#     knots = [0, 36, 108, 144, 180]
+#     controls = [0, 180]
+#     degree = 2
+#     rot_spline = BSpline(knots, controls, degree)
+#     x = np.linspace(0, 180)
+#     rots = [rot_spline.interp(pos) for pos in x]
+
+#     return rots
+
 rotations = zip([1.36] * n_frames, [0] * n_frames, np.linspace(1.157, 5, n_frames))
 locations = zip(
     [0] * n_frames, np.linspace(0, -2, n_frames), np.linspace(0.7521, 1.5, n_frames)

@@ -27,7 +27,7 @@ def save_video(path, fps, background_color):
     write_to = "output/animations/{}.mp4".format(
         "animation"
     )  # have a folder of output where output files could be stored.
-    writer = imageio.get_writer(write_to, format="mp4", mode="I", fps=fps)
+    writer = imageio.get_writer(write_to, format="mp4", mode="I", fps=fps, macro_block_size = None)
 
     for img in imgs:
         writer.append_data(img[:])
@@ -35,7 +35,7 @@ def save_video(path, fps, background_color):
 
 
 # Here is an example which saves images in the animation_renders folder to a video file at 10 fps with a white background
-fps = 10
+fps = 30
 background_color = (255, 255, 255)
 
 save_video(

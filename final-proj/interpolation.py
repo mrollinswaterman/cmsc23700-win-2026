@@ -22,25 +22,22 @@ class BSpline:
 
     def is_valid(self) -> bool:
         """Check if the B-spline configuration is valid."""
-        # TODO: complete this function.
         return self.d == len(self.t) - len(self.c) - 1
-        return True  # change this.
+
 
     def bases(self, x: float, k: int, i: int) -> float:
         """
         Evaluate the B-spline basis function i, k at input position x.
         (Note that i, k start at 0.)
         """
-        # TODO: complete this function
-
         if k == 0:  # base case
-            print("base case!")
+            # print("base case!")
             if self.t[i] <= x and self.t[i + 1] > x:
                 return 1
             else:
                 return 0
         else:
-            print("recurring...")
+            # print("recurring...")
             return (
                 (x - self.t[i]) / (self.t[i + k] - self.t[i]) * self.bases(x, k - 1, i)
             ) + (
@@ -51,9 +48,7 @@ class BSpline:
 
     def interp(self, x: float) -> float:
         """Evaluate the B-spline at input position x."""
-        # TODO: complete this function
         return self.bases(x=x, k=self.d, i=0)
-        return None  # change this
 
 
 if __name__ == "__main__":
