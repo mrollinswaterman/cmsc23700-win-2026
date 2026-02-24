@@ -26,6 +26,11 @@ Task 2: compute_distance_to_line_segment, compute_linear_blended_weights, linear
 def compute_distance_to_line_segment(
     pt: np.ndarray, vertex0: np.ndarray, vertex1: np.ndarray
 ) -> float:
+    """
+    Methodology from here:
+        - https://stackoverflow.com/questions/56463412/distance-from-a-point-to-a-line-segment-in-3d-python
+    """
+
     # normalized tangent vector
     d = np.divide(vertex1 - vertex0, np.linalg.norm(vertex1 - vertex0))
 
@@ -151,9 +156,6 @@ class SkinMesh:
 
             new_pos = np.matmul(bone_transform, pos)
 
-            # mat1 = np.matmul(j.get_binding_matrix(), pos)
-            # bone_transform = np.matmul(j.get_world_matrix(), mat1)
-
             self.set_transformed_vertex(v, new_pos[0:3])
 
     # TODO: Task 2 - Subtask 2
@@ -176,6 +178,7 @@ class SkinMesh:
     #   the current vertex weight divided by that sum of vertex weights.
     #   Now your vertex's joint weights should sum to one!
     def compute_linear_blended_weights(self):
+        # make a dict to hold the weight sums for each vertex
         sums = {}
         for v in range(self.get_num_vertices()):
             sums[v] = 0.0
@@ -186,19 +189,17 @@ class SkinMesh:
                     self.get_vertex(v), world_space_pos[0], world_space_pos[1]
                 )
                 weight = 1 / distance**4
+                # add weight to the dictionary entry for that vertex
                 sums[v] += weight
                 self.set_vertex_weight(v, j, weight)
         for v in range(self.get_num_vertices()):
-            check = 0.0
             for j in range(self.skeleton.get_num_joints()):
                 old = self.get_vertex_weight(v, j)
                 new = old / sums[v]
                 self.set_vertex_weight(v, j, new)
                 check += self.get_vertex_weight(v, j)
-            # assert check == 1.0
 
         return
-        raise NotImplementedError("TODO Task 2 Subtask 2")
 
     # TODO: Task 2 - Subtask 3
     # Implement linear blended skinning
