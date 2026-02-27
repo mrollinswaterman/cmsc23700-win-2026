@@ -5,6 +5,73 @@ import bmesh
 from mathutils import Vector, Euler
 import sys
 from pathlib import Path
+from typing import Sequence
+
+
+"""
+BSpline methodology from here:
+    - https://github.com/Liam-Xander/Simple-BSpline-Python/blob/main/Bsplne.py
+
+Subdivision Algo here:
+    - https://github.com/prithvi1809/Mesh-Loop-Subdivision/tree/main
+"""
+
+
+
+class BSpline:
+    def __init__(
+        self,
+        t: Sequence[float],  # knots
+        c: Sequence[float],  # control points
+        d: int,  # degree
+    ):
+        """
+        t = knots
+        c = bspline coefficients / control points
+        d = bspline degree
+        """
+        self.t = t
+        self.c = c
+        self.d = d
+        assert self.is_valid()
+
+    def is_valid(self) -> bool:
+        """Check if the B-spline configuration is valid."""
+        return self.d == len(self.t) - len(self.c) - 1
+
+
+    def bases(self, x: float, k: int, i: int) -> float:
+        """
+        Evaluate the B-spline basis function i, k at input position x.
+        (Note that i, k start at 0.)
+        """
+        if k == 0:
+            if (x >= self.t[i]) and (x < self.t[i + 1]):
+                return 1.0
+            else:
+                return 0.0
+        else:
+
+            length1 = self.t[i + k] - self.t[i]
+            length2 = self.t[i + k + 1] - self.t[i + 1]
+
+            if length1 == 0.0:
+                length1 = 1.0
+            if length2 == 0.0:
+                length2 = 1.0
+
+        term1 = (x - self.t[i]) / length1 * self.bases(x=x, k=k - 1, i=i)
+        term2 = (self.t[i + k + 1] - x) / length2 * self.bases(x=x, k=k - 1, i=i + 1)
+
+        return term1 + term2
+
+    def interp(self, x: float) -> float:
+        """Evaluate the B-spline at input position x."""
+        #print("running interp...")
+        sum = 0.0
+        for i in range(len(self.c)):
+            sum += self.c[i] * self.bases(x=x, k=self.d, i=i)
+        return sum
 
 # Example calling this file from the command line:
 # Replace with your path to blender and the path to this file
@@ -236,7 +303,7 @@ def setup_animation_keyframes(
 # set obj file to spot.obj in the meshes directory
 # we've also included some other .obj files, but feel free to download or create your own
 obj_file = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "meshes", "spot.obj"
+    os.path.dirname(os.path.abspath(__file__)), "meshes", "scene-suzanne.obj"
 )
 print(f"obj file: {obj_file}")
 
@@ -254,6 +321,9 @@ plane = scene.add_plane()
 # load in obj file and get mesh object
 mesh = TriangleMesh(obj_file)
 mesh = mesh.mesh
+
+print(mesh.location)
+#raise Exception("pause")
 
 # ---------- Render Mesh ---------- #
 # setup output file path
@@ -275,29 +345,45 @@ debug = False
 animate = True
 
 # hard code locations
-n_frames = 30
+n_frames = 10
 
 # example animations (moving either cam or mesh)
 # example camera animation
-# locations = zip([6.6]*n_frames, np.linspace(-6, 3, n_frames), [2.49]*n_frames)
-# rotations = zip([1.36]*n_frames, [0]*n_frames, [1.157]*n_frames)
+#locations = zip([6.6]*n_frames, np.linspace(-6, 3, n_frames), [2.49]*n_frames)
+#rotations = zip([1.36]*n_frames, [0]*n_frames, [1.157]*n_frames)
 
 # example mesh animation
 # this uses np.linspace to generate linear animations
 # but you can replace this with your splines!
-# def get_rotations():
-#     from interpolation import BSpline
 
-#     knots = [0, 36, 108, 144, 180]
-#     controls = [0, 180]
-#     degree = 2
-#     rot_spline = BSpline(knots, controls, degree)
-#     x = np.linspace(0, 180)
-#     rots = [rot_spline.interp(pos) for pos in x]
+def generate_bspline_curve(controls):
+    degree = len(controls) - 1
+    min_val = min(controls)
+    max_val = max(controls)
+    knots = np.concatenate((
+        [min_val] * degree,
+        np.linspace(min_val, max_val, (len(controls) - degree + 1)),
+        [max_val] * degree,
+    ))
 
-#     return rots
+    spline = BSpline(knots, controls, degree)
+    x = np.linspace(min_val, max_val, n_frames)
+    print(f"Interpolating linspace: {x}\n")
+    inter = [spline.interp(pos) for pos in x]
+    print(f"Interpolated the following results: {inter}\n")
+    return inter
 
-rotations = zip([1.36] * n_frames, [0] * n_frames, np.linspace(1.157, 5, n_frames))
+def get_rotations(min_degree, max_degree):
+    min = np.deg2rad(min_degree)
+    max = np.deg2rad(max_degree)
+    controls = [min, (min+max)/2, max]
+    return generate_bspline_curve(controls)
+
+def get_locations(start, end):
+    controls = [start, (start+end)*0.25, (start+end)*0.75, end]
+    return generate_bspline_curve(controls)
+
+rotations = zip([1.36] * n_frames, [mesh.rotation_euler[1]] * n_frames, get_rotations(-45, 45))#np.linspace(1.157, 5, n_frames))
 locations = zip(
     [0] * n_frames, np.linspace(0, -2, n_frames), np.linspace(0.7521, 1.5, n_frames)
 )
@@ -307,6 +393,12 @@ scales = zip(
     np.linspace(0.5, 1.5, n_frames),
 )
 
+#defaults
+rotations = zip([mesh.rotation_euler[0]] * n_frames, [mesh.rotation_euler[1]] * n_frames, [mesh.rotation_euler[2]] * n_frames)
+
+locations = zip([0]*n_frames, [mesh.location[1]] * n_frames, [mesh.location[2]] * n_frames)
+
+scales = zip([mesh.scale[0]] * n_frames, [mesh.scale[1]] * n_frames, [mesh.scale[2]] * n_frames)
 
 if animate:
     # setup_animation_keyframes(cam, locations, rotations, scales, n_frames) # for camera
