@@ -1,11 +1,15 @@
+from __future__ import annotations
 import os
 import numpy as np
+from math import pi
 import bpy
 import bmesh
 from mathutils import Vector, Euler
 import sys
 from pathlib import Path
 from typing import Sequence
+import types
+
 
 
 """
@@ -122,9 +126,9 @@ class TriangleMesh:
         mesh.scale = [1, 1, 1]
 
         # apply rotations in radians
-        mesh.rotation_euler.x = 1.57
+        mesh.rotation_euler.x = 0
         mesh.rotation_euler.y = 0
-        mesh.rotation_euler.z = -1.65
+        mesh.rotation_euler.z = 0
 
         # shift bottom vertex to sit on zero (puts the mesh on the ground plane, you may remove if you want)
         mesh.data.update()
@@ -146,13 +150,13 @@ class TriangleMesh:
         mat.use_nodes = True
 
         # this wipes out any materials that come with the .obj
-        mesh.data.materials.clear()
+        #mesh.data.materials.clear()
 
         # the principled shader is the default shader in blender
         # and the most customizable
-        principled = mat.node_tree.nodes["Principled BSDF"]
+        #principled = mat.node_tree.nodes["Principled BSDF"]
         # here, we set just the base color
-        principled.inputs["Base Color"].default_value = (r, g, b, a)
+        #principled.inputs["Base Color"].default_value = (r, g, b, a)
 
         # you can also set other properties like roughness, metallic, etc.
         # principled.inputs["Roughness"].default_value = 0.5
@@ -173,7 +177,7 @@ class TriangleMesh:
         # glass.inputs["IOR"].default_value = 1.5
 
         # update material
-        mesh.data.materials.append(mat)
+        #mesh.data.materials.append(mat)
 
 
 class Scene:
@@ -198,12 +202,12 @@ class Scene:
         # camera settings
         # this camera is the only thing in the blank.blend file
         cam = bpy.data.scenes["Scene"].objects["Camera"]
-        cam.rotation_euler.x = 1.36
-        cam.rotation_euler.y = 0
-        cam.rotation_euler.z = 1.157
-        cam.location.x = 6.6
-        cam.location.y = -3
-        cam.location.z = 2.49
+        # cam.rotation_euler.x = np.deg2rad(67.5)#pi/2
+        # cam.rotation_euler.y = 0
+        # cam.rotation_euler.z = pi/2 
+        # cam.location.x = 17
+        # cam.location.y = 0
+        # cam.location.z = 10
 
         return cam
 
@@ -213,7 +217,7 @@ class Scene:
         # we will be using an area light
         lights = []
         bpy.ops.object.light_add(
-            type="AREA", align="WORLD", location=(0, 0, 0), scale=(1, 1, 1)
+            type="AREA", align="WORLD", location=(0, 0, 0), scale=(3, 3, 3)
         )
         # but you can also add other types of lights, like point lights
         # bpy.ops.object.light_add(type='POINT', radius=1, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
@@ -221,8 +225,8 @@ class Scene:
         light.data.energy = 1000
         light.data.color = (0.8, 0.77, 0.8)
         light.data.size = 10
-        light.location.x = 6
-        light.location.z = 4.5
+        light.location.x = 0
+        light.location.z = 7
         light.rotation_euler.y = 0.436
 
         lights.append(light)
@@ -239,7 +243,7 @@ class Scene:
 
         # this makes the plane invisible, but it will still catch shadows
         # feel free to remove if you want to see the plane, or even assign a material to it
-        plane.is_shadow_catcher = True
+        # plane.is_shadow_catcher = True
 
         # subdivide the plane (this fixes the freestyle lines)
         bpy.ops.object.mode_set(mode="EDIT")
@@ -249,12 +253,12 @@ class Scene:
 
         # if you want to add a material to the plane, uncomment the following lines
         # and set the shadow catcher to false
-        # mat = bpy.data.materials.new(name="plane_material")
-        # mat.use_nodes = True
-        # principled = mat.node_tree.nodes["Principled BSDF"]
-        # r, g, b, a = 0, 0, 1, 1
-        # principled.inputs["Base Color"].default_value = (r, g, b, a)
-        # plane.data.materials.append(mat)
+        mat = bpy.data.materials.new(name="plane_material")
+        mat.use_nodes = True
+        principled = mat.node_tree.nodes["Principled BSDF"]
+        r, g, b, a = 0, 1, .1, .8
+        principled.inputs["Base Color"].default_value = (r, g, b, a)
+        plane.data.materials.append(mat)
 
         return plane
 
@@ -273,11 +277,54 @@ def setup_animation_keyframes(
     """
     select_obj(object_to_animate)
     bpy.data.scenes["Scene"].frame_end = int(n_frames - 1)
-    f = 1
+    # f = 1
+
+    # for loc, rot, scale in zip(locations, rotations, scales):
+    #     print(loc, rot, scale)
+    #     # put object at location
+    #     object_to_animate.location[0] = loc[0]
+    #     object_to_animate.location[1] = loc[1]
+    #     object_to_animate.location[2] = loc[2]
+
+    #     # rotations
+    #     object_to_animate.rotation_euler[0] = rot[0]
+    #     object_to_animate.rotation_euler[1] = rot[1]
+    #     object_to_animate.rotation_euler[2] = rot[2]
+
+    #     # scale
+    #     object_to_animate.scale[0] = scale[0]
+    #     object_to_animate.scale[1] = scale[1]
+    #     object_to_animate.scale[2] = scale[2]
+
+    #     bpy.data.scenes["Scene"].frame_current = f
+    #     object_to_animate.keyframe_insert(data_path="location", frame=f)
+    #     object_to_animate.keyframe_insert(data_path="rotation_euler", frame=f)
+    #     object_to_animate.keyframe_insert(data_path="scale", frame=f)
+    #     f += 1
+
+def insert_rest_keyframes(object, frame_count):
+    anim = Animation(object, frame_count)
+    insert_animation_keyframes(anim)
+
+def insert_animation_keyframes(animation:Animation):
+    object_to_animate = animation.object
+    locations = animation.get_location_frames()
+    rotations = animation.get_rotation_frames()
+    scales = animation.get_scale_frames()
+    select_obj(object_to_animate)
+    if  bpy.data.scenes["Scene"].frame_current == 1:
+        print("setting frame 1")
+        f = 1
+    else:
+        f = bpy.data.scenes["Scene"].frame_current+1
+
+    if animation.frame_count == 0:
+        raise Exception("cannot have an animation with no frames!")
+
 
     for loc, rot, scale in zip(locations, rotations, scales):
-        print(loc, rot, scale)
-        # put object at location
+        print(f"Inserting {loc}, {rot}, {scale}")
+
         object_to_animate.location[0] = loc[0]
         object_to_animate.location[1] = loc[1]
         object_to_animate.location[2] = loc[2]
@@ -299,31 +346,149 @@ def setup_animation_keyframes(
         f += 1
 
 
-# ---------- Load objs ---------- #
-# set obj file to spot.obj in the meshes directory
-# we've also included some other .obj files, but feel free to download or create your own
-obj_file = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "meshes", "scene-suzanne.obj"
-)
-print(f"obj file: {obj_file}")
-
-
 # ---------- Scene Setup ---------- #
 # set scene parameters and camera
 scene = Scene()
 cam = scene.cam
 
 # set up lights and plane
-lights = scene.add_lights()
-light = lights[0]
-plane = scene.add_plane()
+# lights = scene.add_lights()
+# light = lights[0]
+# plane = scene.add_plane()
+
+def midpoint(v1:float, v2:float):
+    x = (v1[0] + v2[0]) / 2
+    y = (v1[1] + v2[1]) / 2
+    z = (v1[2] + v2[2]) / 2
+    return (x,y,z)
+
+def loop_subdivision(mesh):
+    bm = bmesh.new()
+    bm.from_mesh(mesh.data)
+    new_vertices = {}
+    new_faces = []
+    next_index = len(bm.verts)
+    for f in bm.faces:
+        v1, v2, v3 = [v for v in f.verts]
+
+        # Get the midpoint between each vertex pair
+        m1 = midpoint(v1.co, v2.co)
+        m2 = midpoint(v2.co, v3.co)
+        m3 = midpoint(v3.co, v1.co)
+
+        for v in [m1, m2, m3]:
+            if v not in list(new_vertices.keys()):
+                # new vertex!
+                new_vertices[v] = next_index
+                next_index += 1
+            else:
+                # duplicate vertex
+                pass
+
+        new_faces.append((v1.index, new_vertices[m1], new_vertices[m3]))
+        new_faces.append((v2.index, new_vertices[m1], new_vertices[m2]))
+        new_faces.append((v3.index, new_vertices[m2], new_vertices[m3]))
+        new_faces.append((new_vertices[m1], new_vertices[m2], new_vertices[m3]))
+
+        #print(f"face {f.index} finished. created face with vertices at {new_vertices[m1]}, {new_vertices[m2]} and {new_vertices[m3]}")
+    # update old vertex poistions based on neighbors
+    updated_verts = update_old_verts(bm)
+
+    # put the object in edit mode so we can fiddle with it's vertices
+    obj = bpy.context.selected_objects[0]
+    bpy.ops.object.mode_set(mode="EDIT")
+    subdivided_mesh = bmesh.from_edit_mesh(obj.data)
+
+    # replace all the existing vertex locations with their updated ones
+    for v in subdivided_mesh.verts:
+        v.co = updated_verts[v.index]
+
+    # add all the newly created vertices
+    for v in new_vertices.keys():
+        subdivided_mesh.verts.new(v)
+
+    # remove all the olds faces
+    for f in subdivided_mesh.faces:
+        subdivided_mesh.faces.remove(f)
+
+    # fix the vertex table
+    subdivided_mesh.verts.ensure_lookup_table()
+    subdivided_mesh.verts.index_update()
+
+    # add all the new faces created by subdividing
+    for face in new_faces:
+        subdivided_mesh.faces.new((
+            subdivided_mesh.verts[face[0]],
+            subdivided_mesh.verts[face[1]],
+            subdivided_mesh.verts[face[2]]
+        ))
+
+    # apply the edit mode edits to the object and exit edit mode
+    bmesh.update_edit_mesh(obj.data)
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+    return obj.data
+
+def update_old_verts(mesh_obj):
+    new = []
+
+    for v in mesh_obj.verts:
+        #print(f"getting neighbors of vertex {v.index}")
+        neighbors = get_vertex_neighbors(v)
+        n = len(neighbors)
+
+        if n == 0:
+            raise Exception("vertex has no neighbors!")
+        else:
+            if n == 3:
+                beta = 3 / 16
+            elif n < 3:
+                beta = 3 / (8*n)
+            else:
+                beta = 1/n * (5/8 - (3/8 + 0.5 * np.cos(2 * np.pi / n))**2)
+
+            new_pos = (1.0 - n * beta) * v.co
+            for neighbor in neighbors:
+                new_pos += beta * neighbor.co
+
+        new.append(new_pos)
+
+    return new
+
+def get_vertex_neighbors(vertex):
+    return [edge.other_vert(vertex) for edge in vertex.link_edges]
+
+# ---------- Load objs ---------- #
+# set obj file to spot.obj in the meshes directory
+# we've also included some other .obj files, but feel free to download or create your own
+pikachu_file = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "meshes", "Pikachu.obj"
+)
+
+pokeball_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "meshes", "pokeball.obj"
+                             
+)
+
+print(f"pikachu file: {pikachu_file}")
+print(f"pokeball file: {pokeball_file}")
+
+pikachu = TriangleMesh(pikachu_file)
+pikachu = pikachu.mesh
+#mesh = loop_subdivision(mesh)
 
 # load in obj file and get mesh object
-mesh = TriangleMesh(obj_file)
-mesh = mesh.mesh
+pokeball = TriangleMesh(pokeball_file)
+pokeball = pokeball.mesh
 
-print(mesh.location)
-#raise Exception("pause")
+
+# Initial setup, i.e. move objects to their starting position
+pokeball.rotation_euler[0] = np.deg2rad(90)
+pikachu.rotation_euler[0] = np.deg2rad(90)
+pokeball.scale = (0.5, 0.5, 0.5)
+pikachu.location[0] = -5.0
+pokeball.location[0] = 4.5
+pokeball.location[2] += 0.5
+
 
 # ---------- Render Mesh ---------- #
 # setup output file path
@@ -345,7 +510,7 @@ debug = False
 animate = True
 
 # hard code locations
-n_frames = 10
+n_frames = 30
 
 # example animations (moving either cam or mesh)
 # example camera animation
@@ -356,7 +521,7 @@ n_frames = 10
 # this uses np.linspace to generate linear animations
 # but you can replace this with your splines!
 
-def generate_bspline_curve(controls):
+def generate_bspline_curve(controls, frames):
     degree = len(controls) - 1
     min_val = min(controls)
     max_val = max(controls)
@@ -367,42 +532,180 @@ def generate_bspline_curve(controls):
     ))
 
     spline = BSpline(knots, controls, degree)
-    x = np.linspace(min_val, max_val, n_frames)
-    print(f"Interpolating linspace: {x}\n")
+    x = np.linspace(min_val, max_val, frames)
+    #print(f"Interpolating linspace: {x}\n")
     inter = [spline.interp(pos) for pos in x]
-    print(f"Interpolated the following results: {inter}\n")
+    #print(f"Interpolated the following results: {inter}\n")
     return inter
 
-def get_rotations(min_degree, max_degree):
-    min = np.deg2rad(min_degree)
-    max = np.deg2rad(max_degree)
-    controls = [min, (min+max)/2, max]
-    return generate_bspline_curve(controls)
+def get_rotations(min_degree, max_degree, frames=n_frames):
+    if min_degree < 0:
+        min = np.deg2rad(min_degree)
+        max = np.deg2rad(max_degree)
+        controls = [min/2, min, min/2, (min+max)/2, max/2, max, max/2, (min+max)/2]
+        return generate_bspline_curve(controls, frames)
 
-def get_locations(start, end):
-    controls = [start, (start+end)*0.25, (start+end)*0.75, end]
-    return generate_bspline_curve(controls)
+def get_locations(start, end, frames=n_frames):
+    if start > end:
+        # going down
+        controls = [start, (start+end)*0.75, (start+end)*0.25, end]
+    else:
+        # going up
+        controls = [start, (start+end)*0.25, (start+end)*0.75, end]
+    return generate_bspline_curve(controls, frames)[:-1]+[end]
 
-rotations = zip([1.36] * n_frames, [mesh.rotation_euler[1]] * n_frames, get_rotations(-45, 45))#np.linspace(1.157, 5, n_frames))
-locations = zip(
-    [0] * n_frames, np.linspace(0, -2, n_frames), np.linspace(0.7521, 1.5, n_frames)
-)
-scales = zip(
-    np.linspace(0.5, 1.5, n_frames),
-    np.linspace(0.5, 1.5, n_frames),
-    np.linspace(0.5, 1.5, n_frames),
-)
+def get_rotation_by(start, degree, frames=n_frames):
+    """
+    Generate roation animation frames. Frames start at 'start'
+    and are rotated by 'degree' degrees.
+    """
+    end = np.deg2rad(degree) + start
+    controls = [start, end]
+
+    #print(f"getting rotation from {start} to {end}")
+
+    inter = generate_bspline_curve(controls, frames)
+    inter[-1] = end
+    return inter
+
+def get_rotation_to(start, end, frames=n_frames):
+    """
+    Generate frames for a rotation beginning at start and ending at end
+    """
+    return get_locations(np.deg2rad(start), np.deg2rad(end), frames) 
 
 #defaults
-rotations = zip([mesh.rotation_euler[0]] * n_frames, [mesh.rotation_euler[1]] * n_frames, [mesh.rotation_euler[2]] * n_frames)
+class Animation:
 
-locations = zip([0]*n_frames, [mesh.location[1]] * n_frames, [mesh.location[2]] * n_frames)
+    def __init__(self, object, frame_count):
+        self.object = object
+        self.frame_count = frame_count
+        self._location_frames:Sequence | None = None
+        self._rotation_frames = None
+        self._scale_frames = None
 
-scales = zip([mesh.scale[0]] * n_frames, [mesh.scale[1]] * n_frames, [mesh.scale[2]] * n_frames)
+    def get_location_frames(self):
+        return zip(
+            [self.object.location[0]] * self.frame_count, 
+            [self.object.location[1]] * self.frame_count, 
+            [self.object.location[2]] * self.frame_count
+        ) if not self._location_frames else self._location_frames
+    
+    def get_rotation_frames(self):
+        return zip(
+            [self.object.rotation_euler[0]] * self.frame_count, 
+            [self.object.rotation_euler[1]] * self.frame_count, 
+            [self.object.rotation_euler[2]] * self.frame_count
+        ) if not self._rotation_frames else self._rotation_frames
+
+    def get_scale_frames(self):
+        return zip(
+            [self.object.scale[0]] * self.frame_count, 
+            [self.object.scale[1]] * self.frame_count, 
+            [self.object.scale[2]] * self.frame_count
+        ) if not self._scale_frames else self._scale_frames
+
+
+fall = Animation(object=pokeball, frame_count=25)
+fall._location_frames = zip(
+    [fall.object.location[0]] * fall.frame_count,
+    [fall.object.location[1]] * fall.frame_count,
+    get_locations(10, fall.object.location[2], fall.frame_count)[:-1]+[fall.object.location[2]]
+)
+
+
+big_wiggle = Animation(pokeball, 10)
+big_wiggle._rotation_frames = zip(
+    [big_wiggle.object.rotation_euler[0]] * big_wiggle.frame_count, 
+    get_rotations(-65, 65, big_wiggle.frame_count), 
+    [big_wiggle.object.rotation_euler[2]] * big_wiggle.frame_count
+)
+
+med_wiggle = Animation(pokeball, 10)
+med_wiggle._rotation_frames = zip(
+    [med_wiggle.object.rotation_euler[0]] * med_wiggle.frame_count, 
+    get_rotations(-45, 45, med_wiggle.frame_count), 
+    [med_wiggle.object.rotation_euler[2]] * med_wiggle.frame_count
+)
+
+small_wiggle = Animation(pokeball, 20)
+small_wiggle._rotation_frames = zip(
+    [small_wiggle.object.rotation_euler[0]] * small_wiggle.frame_count, 
+    get_rotations(-25, 25, small_wiggle.frame_count), 
+    [small_wiggle.object.rotation_euler[2]] * small_wiggle.frame_count
+)
+
+pokeball_left = Animation(pokeball, n_frames)
+pokeball_left._rotation_frames = zip(
+    [pokeball.rotation_euler[0]] * pokeball_left.frame_count, 
+    [pokeball.rotation_euler[1]] * pokeball_left.frame_count, 
+    get_rotation_by(pokeball.rotation_euler[2], -90, pokeball_left.frame_count),
+)
+
+pokeball_return_to_center = Animation(pokeball, 5)
+pokeball_return_to_center._rotation_frames = zip(
+    [pokeball.rotation_euler[0]] * pokeball_return_to_center.frame_count, 
+    [pokeball.rotation_euler[1]] * pokeball_return_to_center.frame_count, 
+    get_rotation_to(-90, 0, pokeball_return_to_center.frame_count),
+)
+
+pikachu_right = Animation(pikachu, 15)
+pikachu_right._rotation_frames = zip(
+    [pikachu.rotation_euler[0]] * pikachu_right.frame_count, 
+    [pikachu.rotation_euler[1]] * pikachu_right.frame_count, 
+    get_rotation_by(-90, 90, pikachu_right.frame_count)
+)
+
+pikachu_captured = Animation(pikachu, 10)
+pikachu_captured._scale_frames = zip(
+    get_locations(pikachu_captured.object.scale[0], 0.001, pikachu_captured.frame_count),
+    get_locations(pikachu_captured.object.scale[1], 0.001, pikachu_captured.frame_count),
+    get_locations(pikachu_captured.object.scale[2], 0.001, pikachu_captured.frame_count),
+)
+
+pikachu_captured._location_frames = zip (
+    get_locations(pikachu_captured.object.location[0], pokeball.location[0]+1, pikachu_captured.frame_count),
+    [pikachu_captured.object.location[1]] * pikachu_captured.frame_count,
+    get_locations(pikachu_captured.object.location[2], pokeball.location[2], pikachu_captured.frame_count)
+)
+
+zoom = Animation(cam, 10)
+zoom._location_frames = zip(
+    get_locations(zoom.object.location[0], pokeball.location[0]+0.5, zoom.frame_count),
+    get_locations(zoom.object.location[1], pokeball.location[1]-3, zoom.frame_count),
+    get_locations(zoom.object.location[2], pokeball.location[2]+0.75, zoom.frame_count)
+)
+
+#    get_locations(zoom.object.location[1], zoom.object.location[1]+5, zoom.frame_count),
+#    get_locations(zoom.object.location[2], zoom.object.location[2]-0.3, zoom.frame_count)
 
 if animate:
-    # setup_animation_keyframes(cam, locations, rotations, scales, n_frames) # for camera
-    setup_animation_keyframes(mesh, locations, rotations, scales, n_frames)  # for mesh
+#     # setup_animation_keyframes(cam, locations, rotations, scales, n_frames) # for camera
+#     # setup_animation_keyframes(pokeball, default_loc, default_rot, default_scale, n_frames)  # setup animation frames
+    bpy.data.scenes["Scene"].frame_end = int(n_frames)
+    insert_animation_keyframes(fall, 30) # 30 frames == 1sec
+
+    #insert_animation_keyframes(pokeball_left) # 30 frames = 1sec
+
+    #insert_animation_keyframes(pikachu_right) # 30 frames = 1sec
+
+    #insert_animation_keyframes(pikachu_captured) # 30 frames == 1sec
+
+    #insert_animation_keyframes(pokeball_return_to_center) # 30 frames = 1sec
+
+    #insert_animation_keyframes(zoom) # 30 frames == 1sec
+
+    #insert_animation_keyframes(big_wiggle) # 30 frames == 1sec
+
+    #insert_rest_keyframes(pokeball, 15) # ==> .5 sec
+
+    #insert_animation_keyframes(med_wiggle) # ==> 30 frames == 1sec
+
+    #insert_animation_keyframes(pokeball, 15) # ==> .5 sec
+
+    #insert_animation_keyframes(small_wiggle) #==> 30 frames == 1sec
+
+
     Path(
         os.path.join(
             os.path.dirname(os.path.abspath(__file__)), "output", "animation_renders"
