@@ -120,7 +120,7 @@ class TriangleMesh:
     def mesh_settings(self, mesh):
         # smooth shading, comment out if you have a low poly mesh
         # or want to see the faces more clearly
-        bpy.ops.object.shade_smooth()
+        #bpy.ops.object.shade_smooth()
 
         # apply scale
         mesh.scale = [1, 1, 1]
@@ -348,13 +348,9 @@ def insert_animation_keyframes(animation:Animation):
 
 # ---------- Scene Setup ---------- #
 # set scene parameters and camera
+
 scene = Scene()
 cam = scene.cam
-
-# set up lights and plane
-# lights = scene.add_lights()
-# light = lights[0]
-# plane = scene.add_plane()
 
 def midpoint(v1:float, v2:float):
     x = (v1[0] + v2[0]) / 2
@@ -370,6 +366,8 @@ def loop_subdivision(mesh):
     next_index = len(bm.verts)
     for f in bm.faces:
         v1, v2, v3 = [v for v in f.verts]
+
+
 
         # Get the midpoint between each vertex pair
         m1 = midpoint(v1.co, v2.co)
@@ -393,6 +391,7 @@ def loop_subdivision(mesh):
         #print(f"face {f.index} finished. created face with vertices at {new_vertices[m1]}, {new_vertices[m2]} and {new_vertices[m3]}")
     # update old vertex poistions based on neighbors
     updated_verts = update_old_verts(bm)
+    print("updated old verts")
 
     # put the object in edit mode so we can fiddle with it's vertices
     obj = bpy.context.selected_objects[0]
@@ -426,8 +425,7 @@ def loop_subdivision(mesh):
     # apply the edit mode edits to the object and exit edit mode
     bmesh.update_edit_mesh(obj.data)
     bpy.ops.object.mode_set(mode='OBJECT')
-
-    return obj.data
+    #bpy.ops.wm.obj_export(filepath=subdivided, export_selected_objects=True)
 
 def update_old_verts(mesh_obj):
     new = []
@@ -469,25 +467,42 @@ pokeball_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "meshes
                              
 )
 
+platform_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "meshes", "platform.obj"
+                             
+)
+
 print(f"pikachu file: {pikachu_file}")
 print(f"pokeball file: {pokeball_file}")
 
 pikachu = TriangleMesh(pikachu_file)
 pikachu = pikachu.mesh
-#mesh = loop_subdivision(mesh)
+
 
 # load in obj file and get mesh object
 pokeball = TriangleMesh(pokeball_file)
 pokeball = pokeball.mesh
 
+platform = TriangleMesh(platform_file)
+platform = platform.mesh
+
+subdivided = os.path.join(os.path.dirname(os.path.abspath(__file__)), "meshes", "subdivided.obj")
+loop_subdivision(platform)
+loop_subdivision(platform)
+loop_subdivision(platform)
 
 # Initial setup, i.e. move objects to their starting position
 pokeball.rotation_euler[0] = np.deg2rad(90)
 pikachu.rotation_euler[0] = np.deg2rad(90)
+platform.rotation_euler[0] = np.deg2rad(90)
+
 pokeball.scale = (0.5, 0.5, 0.5)
 pikachu.location[0] = -5.0
+pikachu.location[2] += 1.2
 pokeball.location[0] = 4.5
 pokeball.location[2] += 0.5
+platform.location[0] = -5.0
+platform.location[2] -= 2.4
+
 
 
 # ---------- Render Mesh ---------- #
@@ -510,7 +525,7 @@ debug = False
 animate = True
 
 # hard code locations
-n_frames = 30
+n_frames = 45
 
 # example animations (moving either cam or mesh)
 # example camera animation
@@ -614,49 +629,49 @@ fall._location_frames = zip(
 )
 
 
-big_wiggle = Animation(pokeball, 10)
+big_wiggle = Animation(pokeball, 30)
 big_wiggle._rotation_frames = zip(
     [big_wiggle.object.rotation_euler[0]] * big_wiggle.frame_count, 
     get_rotations(-65, 65, big_wiggle.frame_count), 
     [big_wiggle.object.rotation_euler[2]] * big_wiggle.frame_count
 )
 
-med_wiggle = Animation(pokeball, 10)
+med_wiggle = Animation(pokeball, 30)
 med_wiggle._rotation_frames = zip(
     [med_wiggle.object.rotation_euler[0]] * med_wiggle.frame_count, 
     get_rotations(-45, 45, med_wiggle.frame_count), 
     [med_wiggle.object.rotation_euler[2]] * med_wiggle.frame_count
 )
 
-small_wiggle = Animation(pokeball, 20)
+small_wiggle = Animation(pokeball, 30)
 small_wiggle._rotation_frames = zip(
     [small_wiggle.object.rotation_euler[0]] * small_wiggle.frame_count, 
     get_rotations(-25, 25, small_wiggle.frame_count), 
     [small_wiggle.object.rotation_euler[2]] * small_wiggle.frame_count
 )
 
-pokeball_left = Animation(pokeball, n_frames)
+pokeball_left = Animation(pokeball, 30)
 pokeball_left._rotation_frames = zip(
     [pokeball.rotation_euler[0]] * pokeball_left.frame_count, 
     [pokeball.rotation_euler[1]] * pokeball_left.frame_count, 
     get_rotation_by(pokeball.rotation_euler[2], -90, pokeball_left.frame_count),
 )
 
-pokeball_return_to_center = Animation(pokeball, 5)
+pokeball_return_to_center = Animation(pokeball, 30)
 pokeball_return_to_center._rotation_frames = zip(
     [pokeball.rotation_euler[0]] * pokeball_return_to_center.frame_count, 
     [pokeball.rotation_euler[1]] * pokeball_return_to_center.frame_count, 
     get_rotation_to(-90, 0, pokeball_return_to_center.frame_count),
 )
 
-pikachu_right = Animation(pikachu, 15)
+pikachu_right = Animation(pikachu, 30)
 pikachu_right._rotation_frames = zip(
     [pikachu.rotation_euler[0]] * pikachu_right.frame_count, 
     [pikachu.rotation_euler[1]] * pikachu_right.frame_count, 
-    get_rotation_by(-90, 90, pikachu_right.frame_count)
+    get_rotation_by(pikachu_right.object.rotation_euler[2], 90, pikachu_right.frame_count)
 )
 
-pikachu_captured = Animation(pikachu, 10)
+pikachu_captured = Animation(pikachu, 30)
 pikachu_captured._scale_frames = zip(
     get_locations(pikachu_captured.object.scale[0], 0.001, pikachu_captured.frame_count),
     get_locations(pikachu_captured.object.scale[1], 0.001, pikachu_captured.frame_count),
@@ -669,7 +684,7 @@ pikachu_captured._location_frames = zip (
     get_locations(pikachu_captured.object.location[2], pokeball.location[2], pikachu_captured.frame_count)
 )
 
-zoom = Animation(cam, 10)
+zoom = Animation(cam, 30)
 zoom._location_frames = zip(
     get_locations(zoom.object.location[0], pokeball.location[0]+0.5, zoom.frame_count),
     get_locations(zoom.object.location[1], pokeball.location[1]-3, zoom.frame_count),
@@ -683,9 +698,19 @@ if animate:
 #     # setup_animation_keyframes(cam, locations, rotations, scales, n_frames) # for camera
 #     # setup_animation_keyframes(pokeball, default_loc, default_rot, default_scale, n_frames)  # setup animation frames
     bpy.data.scenes["Scene"].frame_end = int(n_frames)
-    insert_animation_keyframes(fall, 30) # 30 frames == 1sec
+    #insert_animation_keyframes(fall) # 30 frames == 1sec
 
     #insert_animation_keyframes(pokeball_left) # 30 frames = 1sec
+
+    #pokeball.rotation_euler[2] = np.deg2rad(-90)
+    pikachu.rotation_euler[2] = np.deg2rad(90)
+
+    pikachu.scale = (0.001, 0.001, 0.001)
+    pikachu.location = (5.5, 0.0, 1.5284843444824219)
+
+    cam.location = (4.574705809996311, -6.652732789372261, 2.2585730261163146)
+
+    cam.rotation_euler = (1.4311699867248535, 0.0, 0.0)
 
     #insert_animation_keyframes(pikachu_right) # 30 frames = 1sec
 
@@ -695,15 +720,19 @@ if animate:
 
     #insert_animation_keyframes(zoom) # 30 frames == 1sec
 
+    #insert_rest_keyframes(pokeball, 3)
+
     #insert_animation_keyframes(big_wiggle) # 30 frames == 1sec
 
     #insert_rest_keyframes(pokeball, 15) # ==> .5 sec
 
     #insert_animation_keyframes(med_wiggle) # ==> 30 frames == 1sec
 
-    #insert_animation_keyframes(pokeball, 15) # ==> .5 sec
+    insert_rest_keyframes(pokeball, 10) # ==> .5 sec
 
-    #insert_animation_keyframes(small_wiggle) #==> 30 frames == 1sec
+    insert_animation_keyframes(small_wiggle) #==> 30 frames == 1sec
+
+    insert_rest_keyframes(pokeball, 5)
 
 
     Path(
